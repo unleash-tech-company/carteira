@@ -1,37 +1,45 @@
-import { z } from "zod"
-import type { WriteTransaction, ReadTransaction } from "@rocicorp/reflect"
+import {
+  createSchema,
+  definePermissions,
+  ANYONE_CAN,
+  table,
+  string,
+  number,
+  Row,
+} from "@rocicorp/zero";
 
-export const Post = z.object({
-  id: z.number(),
-  name: z.string(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-})
+const posts = table("posts")
+  .columns({
+    id: number(),
+    name: string(),
+    createdAt: string(),
+    updatedAt: string(),
+  })
+  .primaryKey("id");
 
-export type Post = z.infer<typeof Post>
+export const schema = createSchema(1, {
+  tables: [posts],
+  relationships: [],
+});
 
-export const posts = {
-  name: "post",
-  schema: Post,
-  async list(tx: ReadTransaction) {
-    const entries = tx.scan()
-    const values = await entries.toArray()
-    return values as Post[]
+export type Schema = typeof schema;
+export type Post = Row<typeof schema.tables.posts>;
+
+// The contents of your decoded JWT.
+type AuthData = {
+  sub: string | null;
+};
+
+export const permissions = definePermissions<AuthData, Schema>(schema, () => ({
+  posts: {
+    row: {
+      insert: ANYONE_CAN,
+      update: {
+        preMutation: ANYONE_CAN,
+        postMutation: ANYONE_CAN,
+      },
+      delete: ANYONE_CAN,
+      select: ANYONE_CAN,
+    },
   },
-  async get(tx: ReadTransaction, id: number) {
-    const value = await tx.get(`post/${id}`)
-    return value as Post | undefined
-  },
-  async put(tx: WriteTransaction, post: Post) {
-    await tx.set(`post/${post.id}`, post)
-  },
-  async delete(tx: WriteTransaction, id: number) {
-    await tx.del(`post/${id}`)
-  }
-}
-
-// Define query helpers
-export const postQueries = {
-  list: posts.list,
-  get: posts.get,
-} 
+})); 

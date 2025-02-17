@@ -1,78 +1,55 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import type { ReadTransaction } from "@/server/zero/client"
-import type { Post } from "@/server/zero/schema/posts"
-import { useZeroContext } from "@/components/providers/zero-provider"
+import { useState } from "react"
+import { useQuery, useZero as useZeroBase } from "@rocicorp/zero/react"
+import type { Schema, Post } from "@/server/zero/schema/posts"
 
 export function useZero() {
-  const client = useZeroContext()
-  const [posts, setPosts] = useState<Post[]>([])
-  const [isSubscribed, setIsSubscribed] = useState(false)
+  const z = useZeroBase<Schema>()
+  const [filterText, setFilterText] = useState<string>("")
 
-  useEffect(() => {
-    if (!client) return
+  const all = z.query.posts
+  const [allPosts] = useQuery(all)
 
-    let unsubscribe: (() => void) | undefined
+  let filtered = all.orderBy("createdAt", "desc")
 
-    const setupSubscription = async () => {
-      try {
-        unsubscribe = client.subscribe(async (tx: ReadTransaction) => {
-          const posts = await client.query.posts.list(tx)
-          return posts
-        }, setPosts)
-        setIsSubscribed(true)
-      } catch (error) {
-        console.error('Error setting up subscription:', error)
-        setIsSubscribed(false)
-      }
-    }
+  if (filterText) {
+    filtered = filtered.where("name", "LIKE", `%${filterText}%`)
+  }
 
-    setupSubscription()
-
-    return () => {
-      if (unsubscribe) {
-        unsubscribe()
-        setIsSubscribed(false)
-      }
-    }
-  }, [client])
+  const [filteredPosts] = useQuery(filtered)
 
   const createPost = async (name: string) => {
-    if (!client || !isSubscribed) return
-    try {
-      await client.mutate["post/create"]({ name })
-    } catch (error) {
-      console.error('Error creating post:', error)
-      throw error
-    }
+    await z.mutate.posts.insert({
+      id: Date.now(),
+      name,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
   }
 
   const deletePost = async (id: number) => {
-    if (!client || !isSubscribed) return
-    try {
-      await client.mutate["post/delete"]({ id })
-    } catch (error) {
-      console.error('Error deleting post:', error)
-      throw error
-    }
+    await z.mutate.posts.delete({ id })
   }
 
   const updatePost = async (id: number, name: string) => {
-    if (!client || !isSubscribed) return
-    try {
-      await client.mutate["post/update"]({ id, name })
-    } catch (error) {
-      console.error('Error updating post:', error)
-      throw error
-    }
+    const post = allPosts.find(p => p.id === id)
+    if (!post) return
+
+    await z.mutate.posts.update({
+      ...post,
+      name,
+      updatedAt: new Date().toISOString(),
+    })
   }
 
   return {
-    posts,
+    posts: filteredPosts,
+    allPosts,
     createPost,
     deletePost,
     updatePost,
-    isSubscribed
+    filterText,
+    setFilterText,
   }
 } 

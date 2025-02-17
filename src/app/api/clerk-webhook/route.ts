@@ -3,6 +3,8 @@ import { headers } from "next/headers";
 import { WebhookEvent } from "@clerk/nextjs/server";
 import { getPusherInstance } from "@/lib/pusher";
 import { env } from "@/env";
+import { clerkClient } from "@clerk/nextjs/server";
+import type { Session } from "@clerk/nextjs/server";
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = env.CLERK_WEBHOOK_SECRET;
@@ -43,34 +45,79 @@ export async function POST(req: Request) {
   }
 
   const eventType = evt.type;
-  const userId = evt.data.id;
+  const sessionData = evt.data as { userId?: string; id: string };
+  const userId = sessionData.userId;
+  const sessionId = sessionData.id;
+
+  if (!userId) {
+    return new Response("Missing user ID", { status: 400 });
+  }
+
   const pusher = getPusherInstance();
 
-  switch (eventType) {
-    case "session.created":
-      await pusher.trigger("private-session", `evt::session-${userId}`, {
-        type: "session-created",
-        data: {
-          sessionId: evt.data.id,
-          message: "New session created",
-        },
-      });
-      break;
+  try {
+    switch (eventType) {
+      case "session.created": {
+        // Get all active sessions for the user
+        const clerk = await clerkClient();
+        const sessionsResponse = await clerk.sessions.getSessionList({
+          userId,
+          status: "active",
+        });
 
-    case "session.ended":
-    case "session.removed":
-    case "session.revoked":
-      await pusher.trigger("private-session", `evt::session-${userId}`, {
-        type: "session-ended",
-        data: {
-          sessionId: evt.data.id,
-          message: `Session ${eventType.replace('session.', '')}`,
-        },
-      });
-      break;
+        const sessions = sessionsResponse.data;
 
-    default:
-      console.log(`Unhandled webhook event: ${eventType}`);
+        // If there's more than one session, end all but the newest one
+        if (sessions.length > 1) {
+          // Sort sessions by creation date, newest first
+          const sortedSessions = [...sessions].sort(
+            (a: Session, b: Session) => 
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+
+          // Get all session IDs except the newest one
+          const excessSessionIds = sortedSessions
+            .slice(1)
+            .map((session: Session) => session.id);
+
+          // End excess sessions
+          await Promise.all(
+            excessSessionIds.map(async (id: string) => {
+              const clerk = await clerkClient();
+              return clerk.sessions.revokeSession(id);
+            })
+          );
+
+          // Notify clients about the session revocation
+          await pusher.trigger("private-session", `evt::session-${userId}`, {
+            type: "session-ended",
+            data: {
+              sessionId,
+              message: "Multiple sessions detected",
+            },
+          });
+        }
+        break;
+      }
+
+      case "session.ended":
+      case "session.removed":
+      case "session.revoked":
+        await pusher.trigger("private-session", `evt::session-${userId}`, {
+          type: "session-ended",
+          data: {
+            sessionId,
+            message: `Session ${eventType.replace('session.', '')}`,
+          },
+        });
+        break;
+
+      default:
+        console.log(`Unhandled webhook event: ${eventType}`);
+    }
+  } catch (error) {
+    console.error("Error processing webhook:", error);
+    return new Response("Error processing webhook", { status: 500 });
   }
 
   return new Response("", { status: 200 });
