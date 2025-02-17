@@ -8,7 +8,10 @@ import {
 import { HTTPException } from "hono/http-exception"
 import { PropsWithChildren, useState } from "react"
 import { ClerkProvider } from "@clerk/nextjs"
+import { useSessionMonitor } from "@/hooks/use-session-monitor"
+
 export const Providers = ({ children }: PropsWithChildren) => {
+  useSessionMonitor()
   const [queryClient] = useState(
     () =>
       new QueryClient({
