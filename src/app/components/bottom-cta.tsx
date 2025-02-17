@@ -75,7 +75,7 @@ export function BottomCtaSection({ title = CONTENT.title }: { title?: string }) 
               "transition-shadow duration-300"
             )}
           >
-            <Link href="/login">
+            <Link href="/sign-in">
               <RainbowButton>{CONTENT.buttonText}</RainbowButton>
             </Link>
           </motion.div>
