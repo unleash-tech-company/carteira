@@ -7,4 +7,5 @@ export const env = {
     PUSHER_SECRET: process.env.PUSHER_SECRET ?? "",
     NEXT_PUBLIC_PUSHER_CLUSTER: process.env.NEXT_PUBLIC_PUSHER_CLUSTER ?? "",
     CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET ?? "",
+    ZERO_UPSTREAM_DB: process.env.ZERO_UPSTREAM_DB ?? "",
 };

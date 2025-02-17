@@ -1,8 +1,26 @@
-import { PropsWithChildren } from "react"
-import { createClient } from "@/server/zero/client"
+"use client"
 
-const client = createClient()
+import { PropsWithChildren, createContext, useContext, useMemo } from "react"
+import { createClient, type Client } from "@/server/zero/client"
+
+const ZeroContext = createContext<Client | null>(null)
+
+export function useZeroContext() {
+  const context = useContext(ZeroContext)
+  return context
+}
 
 export function ZeroProvider({ children }: PropsWithChildren) {
-  return children
+  const client = useMemo(() => {
+    if (typeof window === "undefined") {
+      return null
+    }
+    return createClient()
+  }, [])
+
+  return (
+    <ZeroContext.Provider value={client}>
+      {children}
+    </ZeroContext.Provider>
+  )
 } 

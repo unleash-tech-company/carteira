@@ -42,12 +42,23 @@ export type Client = Reflect<MutatorDefs> & {
   query: typeof query
 }
 
-export function createClient(roomID = "default", userID = "default"): Client {
-  const client = new Reflect({
-    roomID,
-    userID,
-    mutators,
-  })
+let clientInstance: Client | null = null
 
-  return Object.assign(client, { query })
+export function createClient(roomID = "default", userID = "default"): Client {
+  if (typeof window === "undefined") {
+    throw new Error("Zero client can only be created in the browser")
+  }
+
+  if (!clientInstance) {
+    clientInstance = Object.assign(
+      new Reflect({
+        roomID,
+        userID,
+        mutators,
+      }),
+      { query }
+    )
+  }
+
+  return clientInstance
 } 
