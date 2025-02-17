@@ -12,7 +12,7 @@ export default function DashboardPage() {
     <div className="container mx-auto py-8 space-y-8">
       <div className="flex items-center justify-between">
         <TypographyH1>Dashboard</TypographyH1>
-        <UserButton afterSwitchSessionUrl="/" />
+        <UserButton afterSignOutUrl="/" />
       </div>
       <PostsSection />
     </div>
