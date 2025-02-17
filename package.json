@@ -55,6 +55,8 @@
     "@radix-ui/react-toggle": "^1.1.2",
     "@radix-ui/react-toggle-group": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
+    "@rocicorp/rails": "^0.11.1",
+    "@rocicorp/reflect": "^0.39.202402230127",
     "@tailwindcss/postcss": "^4.0.0",
     "@tanstack/react-query": "^5.66.0",
     "@tanstack/react-query-devtools": "^5.66.0",

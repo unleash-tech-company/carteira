@@ -9,6 +9,7 @@ import { HTTPException } from "hono/http-exception"
 import { PropsWithChildren, useState } from "react"
 import { ClerkProvider } from "@clerk/nextjs"
 import { AppProvider } from "@/components/providers/app-provider"
+import { ZeroProvider } from "@/components/providers/zero-provider"
 
 export const Providers = ({ children }: PropsWithChildren) => {
   const [queryClient] = useState(
@@ -27,7 +28,9 @@ export const Providers = ({ children }: PropsWithChildren) => {
   return (
     <ClerkProvider>
       <QueryClientProvider client={queryClient}>
-        <AppProvider>{children}</AppProvider>
+        <AppProvider>
+          <ZeroProvider>{children}</ZeroProvider>
+        </AppProvider>
       </QueryClientProvider>
     </ClerkProvider>
   )

@@ -2,19 +2,19 @@
 
 import { UserButton } from "@clerk/nextjs";
 import { useSessionMonitor } from "@/hooks/use-session-monitor";
+import { PostsSection } from "./components/posts-section";
+import { TypographyH1 } from "@/components/ui/typography";
 
 export default function DashboardPage() {
   useSessionMonitor();
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-8 space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <UserButton afterSignOutUrl="/" />
+        <TypographyH1>Dashboard</TypographyH1>
+        <UserButton afterSwitchSessionUrl="/" />
       </div>
-      <div className="mt-4">
-        <p>This is a protected page. Only authenticated users can see this content.</p>
-      </div>
+      <PostsSection />
     </div>
   );
 } 
