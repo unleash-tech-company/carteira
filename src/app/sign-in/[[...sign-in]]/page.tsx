@@ -17,7 +17,7 @@ export default function SignInPage() {
             Welcome back
           </h1>
           <p className="text-sm text-muted-foreground">
-            Enter your email to sign in to your account
+            Choose how you'd like to sign in
           </p>
         </div>
 
@@ -36,6 +36,7 @@ export default function SignInPage() {
               headerSubtitle: "hidden",
               socialButtonsBlockButton: "bg-background border text-foreground hover:bg-muted",
               socialButtonsBlockButtonText: "text-foreground font-normal",
+              socialButtonsProviderIcon: "w-5 h-5",
               formFieldSuccessText: "text-green-500",
               formFieldErrorText: "text-destructive",
               alertText: "text-destructive",
@@ -43,10 +44,10 @@ export default function SignInPage() {
               identityPreviewEditButton: "text-primary hover:text-primary/90",
             },
           }}
-          routing="path"
           path="/sign-in"
           signUpUrl="/sign-up"
           redirectUrl="/dashboard"
+          afterSignInUrl="/dashboard"
         />
 
         <p className="px-8 text-center text-sm text-muted-foreground">

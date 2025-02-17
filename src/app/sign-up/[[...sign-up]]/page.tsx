@@ -17,7 +17,7 @@ export default function SignUpPage() {
             Create an account
           </h1>
           <p className="text-sm text-muted-foreground">
-            Enter your email below to create your account
+            Choose how you'd like to create your account
           </p>
         </div>
 
@@ -36,6 +36,7 @@ export default function SignUpPage() {
               headerSubtitle: "hidden",
               socialButtonsBlockButton: "bg-background border text-foreground hover:bg-muted",
               socialButtonsBlockButtonText: "text-foreground font-normal",
+              socialButtonsProviderIcon: "w-5 h-5",
               formFieldSuccessText: "text-green-500",
               formFieldErrorText: "text-destructive",
               alertText: "text-destructive",
@@ -43,10 +44,10 @@ export default function SignUpPage() {
               identityPreviewEditButton: "text-primary hover:text-primary/90",
             },
           }}
-          routing="path"
           path="/sign-up"
           signInUrl="/sign-in"
           redirectUrl="/dashboard"
+          afterSignUpUrl="/dashboard"
         />
 
         <p className="px-8 text-center text-sm text-muted-foreground">
