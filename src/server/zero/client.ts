@@ -11,11 +11,14 @@ export function createClient(userID: string): Client {
     throw new Error("Zero client can only be created in the browser");
   }
 
+  const baseUrl = window.location.origin;
+  const serverUrl = `${baseUrl}/zero-cache`;
+
   if (!clientInstance) {
     clientInstance = new Zero({
       userID,
       auth: env.ZERO_AUTH_SECRET,
-      server: "/zero-cache",
+      server: serverUrl,
       schema,
       kvStore: "idb",
     });
