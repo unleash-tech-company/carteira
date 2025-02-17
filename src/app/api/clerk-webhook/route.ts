@@ -44,21 +44,33 @@ export async function POST(req: Request) {
 
   const eventType = evt.type;
   const userId = evt.data.id;
+  const pusher = getPusherInstance();
 
-  if (eventType === "session.created") {
-    const pusher = getPusherInstance();
-    await pusher.trigger(`user-${userId}`, "session-created", {
-      message: "New session created",
-      sessionId: evt.data.id,
-    });
-  }
+  switch (eventType) {
+    case "session.created":
+      await pusher.trigger("private-session", `evt::session-${userId}`, {
+        type: "session-created",
+        data: {
+          sessionId: evt.data.id,
+          message: "New session created",
+        },
+      });
+      break;
 
-  if (eventType === "session.removed") {
-    const pusher = getPusherInstance();
-    await pusher.trigger(`user-${userId}`, "session-removed", {
-      message: "Session ended",
-      sessionId: evt.data.id,
-    });
+    case "session.ended":
+    case "session.removed":
+    case "session.revoked":
+      await pusher.trigger("private-session", `evt::session-${userId}`, {
+        type: "session-ended",
+        data: {
+          sessionId: evt.data.id,
+          message: `Session ${eventType.replace('session.', '')}`,
+        },
+      });
+      break;
+
+    default:
+      console.log(`Unhandled webhook event: ${eventType}`);
   }
 
   return new Response("", { status: 200 });

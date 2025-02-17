@@ -46,8 +46,7 @@ export default function SignUpPage() {
           }}
           path="/sign-up"
           signInUrl="/sign-in"
-          redirectUrl="/dashboard"
-          afterSignUpUrl="/dashboard"
+          forceRedirectUrl="/dashboard"
         />
 
         <p className="px-8 text-center text-sm text-muted-foreground">

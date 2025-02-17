@@ -1,7 +1,24 @@
+'use client';
+
 import { SignIn } from "@clerk/nextjs";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 export default function SignInPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const forcedRedirect = searchParams.get("forcedRedirect");
+
+  useEffect(() => {
+    if (forcedRedirect) {
+      toast.error("Detected additional sessions, you've been signed out");
+      router.replace("/sign-in");
+    }
+  }, [forcedRedirect, router]);
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 p-4">
       <Link
@@ -46,8 +63,7 @@ export default function SignInPage() {
           }}
           path="/sign-in"
           signUpUrl="/sign-up"
-          redirectUrl="/dashboard"
-          afterSignInUrl="/dashboard"
+          forceRedirectUrl="/dashboard"
         />
 
         <p className="px-8 text-center text-sm text-muted-foreground">

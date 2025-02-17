@@ -1,31 +1,97 @@
 import { useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useClerk } from "@clerk/nextjs";
 import { getPusherClientInstance } from "@/lib/pusher-client";
 import { useRouter } from "next/navigation";
+import PusherClient from "pusher-js";
+import type { Channel } from "pusher-js";
+
+const useHandleSignOut = () => {
+  const { signOut } = useClerk();
+  const router = useRouter();
+
+  return async (currentSessionId: string) => {
+    await signOut(() => {
+      router.push(`/sign-in?forcedRedirect=true`);
+    }, {
+      sessionId: currentSessionId
+    });
+  };
+};
+
+const useHandleSessionRemoval = () => {
+  const { session: currentSession } = useClerk();
+  const handleSignOut = useHandleSignOut();
+
+  return async (excessSessionIds: string[]) => {
+    try {
+      const hasExcess = excessSessionIds.length > 0;
+      const isCurrentSessionExcess =
+        hasExcess && currentSession && excessSessionIds.includes(currentSession.id);
+
+      if (!isCurrentSessionExcess) return;
+
+      await handleSignOut(currentSession.id);
+    } catch (error) {
+      console.error('Error removing session:', error);
+    }
+  };
+};
+
+let didInit = false;
 
 export function useSessionMonitor() {
   const { user } = useUser();
-  const router = useRouter();
+  const handleSessionRemoval = useHandleSessionRemoval();
 
   useEffect(() => {
-    if (!user) return;
+    if (!didInit && user) {
+      let pusher: PusherClient | null = null;
+      let channel: Channel | null = null;
 
-    const pusher = getPusherClientInstance();
-    const channel = pusher.subscribe(`user-${user.id}`);
+      try {
+        pusher = getPusherClientInstance();
+        channel = pusher
+          .subscribe("private-session")
+          .bind(
+            `evt::revoke-${user.id}`,
+            (data: { type: string; data: string[] }) => {
+              if (data.type === "session-revoked") {
+                handleSessionRemoval(data.data);
+              }
+            },
+          );
 
-    channel.bind("session-created", (data: { sessionId: string }) => {
-      console.log("New session created:", data.sessionId);
-      // You can show a notification here if you want
-    });
+        pusher.connection.bind("error", (error: any) => {
+          console.error("Pusher connection error:", error);
+          // Attempt to reconnect after error
+          if (pusher) {
+            pusher.connect();
+          }
+        });
 
-    channel.bind("session-removed", (data: { sessionId: string }) => {
-      console.log("Session ended:", data.sessionId);
-      // You can show a notification here if you want
-    });
+        didInit = true;
+      } catch (error) {
+        console.error("Error initializing Pusher:", error);
+        // Cleanup on error
+        if (channel) {
+          channel.unbind_all();
+        }
+        if (pusher) {
+          pusher.unsubscribe("private-session");
+        }
+        didInit = false;
+      }
 
-    return () => {
-      channel.unbind_all();
-      pusher.unsubscribe(`user-${user.id}`);
-    };
-  }, [user]);
+      return () => {
+        if (channel) {
+          channel.unbind_all();
+        }
+        if (pusher) {
+          pusher.unsubscribe("private-session");
+          pusher.disconnect();
+        }
+        didInit = false;
+      };
+    }
+  }, [user, handleSessionRemoval]);
 } 
