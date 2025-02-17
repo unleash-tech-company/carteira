@@ -1,11 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { useQuery, useZero as useZeroBase } from "@rocicorp/zero/react"
+import { useQuery } from "@rocicorp/zero/react"
 import type { Schema, Post } from "@/server/zero/schema/posts"
+import { useZeroContext } from "@/components/providers/zero-provider"
 
 export function useZero() {
-  const z = useZeroBase<Schema>()
+  const z = useZeroContext()
   const [filterText, setFilterText] = useState<string>("")
 
   const all = z.query.posts
