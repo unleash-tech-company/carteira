@@ -12,7 +12,7 @@ export function createClient(userID: string): Client {
   }
 
   const baseUrl = window.location.origin;
-  const serverUrl = `${baseUrl}/api/zero-cache`;
+  const serverUrl = `${baseUrl}/zero`;
 
   if (!clientInstance) {
     clientInstance = new Zero({
