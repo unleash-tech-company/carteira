@@ -2,9 +2,9 @@ import { getPusherInstance } from "@/lib/pusher";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
 export async function POST(req: Request) {
-  const { userId, sessionId } = await auth();
+  const { sessionId } = await auth();
 
-  if (!userId || !sessionId) {
+  if (!sessionId) {
     return new Response("Unauthorized", { status: 401 });
   }
 

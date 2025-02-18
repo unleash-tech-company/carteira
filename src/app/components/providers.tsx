@@ -10,7 +10,6 @@ import { ClerkProvider } from "@clerk/nextjs"
 import { TRPCProvider } from "@/components/providers/trpc-provider"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { toast } from "sonner"
-import { AppProvider } from "@/components/providers/app-provider"
 
 export function Providers({ children }: PropsWithChildren) {
   const [queryClient] = useState(
@@ -40,9 +39,7 @@ export function Providers({ children }: PropsWithChildren) {
       <QueryClientProvider client={queryClient}>
         <ReactQueryDevtools initialIsOpen={false} />
         <TRPCProvider queryClient={queryClient}>
-          <AppProvider>
             {children}
-          </AppProvider>
         </TRPCProvider>
       </QueryClientProvider>
     </ClerkProvider>
