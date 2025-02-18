@@ -18,11 +18,24 @@ export function ZeroProvider({ children }: PropsWithChildren) {
   const { user, isLoaded } = useUser()
 
   const client = useMemo(() => {
-    if (typeof window === "undefined" || !isLoaded || !user) {
+    if (!isLoaded) {
       return null
     }
+
+    if (!user) {
+      return null
+    }
+
     return createClient(user.id)
   }, [user, isLoaded])
+
+  if (!isLoaded) {
+    return null
+  }
+
+  if (!user) {
+    return null
+  }
 
   if (!client) {
     return null

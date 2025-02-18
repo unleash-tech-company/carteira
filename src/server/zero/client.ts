@@ -11,9 +11,9 @@ export function createClient(userID: string): Client {
     throw new Error("Zero client can only be created in the browser");
   }
 
-  const baseUrl = window.location.origin;
-  const serverUrl = `${baseUrl}/zero`;
-
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+  const serverUrl = `${baseUrl}/api`;
+  console.log("serverUrl", serverUrl);
   if (!clientInstance) {
     clientInstance = new Zero({
       userID,
