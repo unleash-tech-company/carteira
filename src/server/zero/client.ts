@@ -12,8 +12,8 @@ export function createClient(userID: string): Client {
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-  const serverUrl = `${baseUrl}/api`;
-  console.log("serverUrl", serverUrl);
+  const serverUrl = `${baseUrl}/api/zero**`;
+
   if (!clientInstance) {
     clientInstance = new Zero({
       userID,

@@ -18,32 +18,19 @@ export function ZeroProvider({ children }: PropsWithChildren) {
   const { user, isLoaded } = useUser()
 
   const client = useMemo(() => {
-    if (!isLoaded) {
-      return null
-    }
-
-    if (!user) {
+    if (!isLoaded || !user) {
       return null
     }
 
     return createClient(user.id)
   }, [user, isLoaded])
 
-  if (!isLoaded) {
-    return null
-  }
-
-  if (!user) {
-    return null
-  }
-
-  if (!client) {
-    return null
-  }
-
+  // Always provide the context, even if it's null
+  // This ensures the provider wrapper is always present
   return (
     <ZeroContext.Provider value={client}>
-      {children}
+      {/* Only render children when we have a valid client */}
+      {client ? children : null}
     </ZeroContext.Provider>
   )
 } 
