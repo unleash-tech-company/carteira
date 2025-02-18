@@ -1,14 +1,11 @@
 "use client"
 
-import {
-  QueryCache,
-  QueryClient,
-  QueryClientProvider,
-} from "@tanstack/react-query"
-import { useState, type PropsWithChildren } from "react"
-import { ClerkProvider } from "@clerk/nextjs"
 import { TRPCProvider } from "@/components/providers/trpc-provider"
+import { ptBR } from "@clerk/localizations"
+import { ClerkProvider } from "@clerk/nextjs"
+import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
+import { useState, type PropsWithChildren } from "react"
 import { toast } from "sonner"
 
 export function Providers({ children }: PropsWithChildren) {
@@ -35,12 +32,10 @@ export function Providers({ children }: PropsWithChildren) {
   )
 
   return (
-    <ClerkProvider>
+    <ClerkProvider localization={ptBR}>
       <QueryClientProvider client={queryClient}>
         <ReactQueryDevtools initialIsOpen={false} />
-        <TRPCProvider queryClient={queryClient}>
-            {children}
-        </TRPCProvider>
+        <TRPCProvider queryClient={queryClient}>{children}</TRPCProvider>
       </QueryClientProvider>
     </ClerkProvider>
   )

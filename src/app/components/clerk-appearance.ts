@@ -1,0 +1,22 @@
+export const clerkAppearance = {
+  elements: {
+    rootBox: "w-full mx-auto max-w-sm",
+    card: "bg-background shadow-none border rounded-lg",
+    formButtonPrimary: "bg-primary hover:bg-primary/90",
+    footerActionLink: "text-primary hover:text-primary/90",
+    formFieldInput: "bg-background",
+    dividerLine: "bg-border",
+    dividerText: "text-muted-foreground",
+    formFieldLabel: "text-foreground",
+    headerTitle: "hidden",
+    headerSubtitle: "hidden",
+    socialButtonsBlockButton: "bg-background border text-foreground hover:bg-muted",
+    socialButtonsBlockButtonText: "text-foreground font-normal",
+    socialButtonsProviderIcon: "w-5 h-5",
+    formFieldSuccessText: "text-green-500",
+    formFieldErrorText: "text-destructive",
+    alertText: "text-destructive",
+    identityPreviewText: "text-foreground",
+    identityPreviewEditButton: "text-primary hover:text-primary/90",
+  },
+} 
