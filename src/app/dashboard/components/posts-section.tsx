@@ -1,26 +1,37 @@
 "use client"
 
 import { useState } from "react"
-import { useZero } from "@/hooks/use-zero"
+import { api } from "@/utils/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { TypographyH2, TypographyP } from "@/components/ui/typography"
 
 export function PostsSection() {
-  const { posts, createPost, updatePost, deletePost } = useZero()
   const [newPostName, setNewPostName] = useState("")
   const [editingPost, setEditingPost] = useState<{ id: number; name: string } | null>(null)
 
+  const utils = api.useUtils()
+  const { data: posts = [] } = api.posts.getAll.useQuery()
+  const createPost = api.posts.create.useMutation({
+    onSuccess: () => utils.posts.getAll.invalidate(),
+  })
+  const updatePost = api.posts.update.useMutation({
+    onSuccess: () => utils.posts.getAll.invalidate(),
+  })
+  const deletePost = api.posts.delete.useMutation({
+    onSuccess: () => utils.posts.getAll.invalidate(),
+  })
+
   const handleCreatePost = async () => {
     if (!newPostName.trim()) return
-    await createPost(newPostName)
+    await createPost.mutateAsync({ name: newPostName })
     setNewPostName("")
   }
 
   const handleUpdatePost = async () => {
     if (!editingPost || !editingPost.name.trim()) return
-    await updatePost(editingPost.id, editingPost.name)
+    await updatePost.mutateAsync({ id: editingPost.id, name: editingPost.name })
     setEditingPost(null)
   }
 
@@ -67,7 +78,7 @@ export function PostsSection() {
                   )}
                 </TableCell>
                 <TableCell>{new Date(post.createdAt).toLocaleString()}</TableCell>
-                <TableCell>{new Date(post.updatedAt).toLocaleString()}</TableCell>
+                <TableCell>{new Date(post.createdAt).toLocaleString()}</TableCell>
                 <TableCell>
                   {editingPost?.id === post.id ? (
                     <div className="flex gap-2">
@@ -77,7 +88,7 @@ export function PostsSection() {
                   ) : (
                     <div className="flex gap-2">
                       <Button onClick={() => setEditingPost({ id: post.id, name: post.name })}>Edit</Button>
-                      <Button variant="destructive" onClick={() => deletePost(post.id)}>Delete</Button>
+                      <Button variant="destructive" onClick={() => deletePost.mutate({ id: post.id })}>Delete</Button>
                     </div>
                   )}
                 </TableCell>

@@ -5,20 +5,30 @@ import {
   QueryClient,
   QueryClientProvider,
 } from "@tanstack/react-query"
-import { HTTPException } from "hono/http-exception"
-import { PropsWithChildren, useState } from "react"
+import { useState, type PropsWithChildren } from "react"
 import { ClerkProvider } from "@clerk/nextjs"
+import { TRPCProvider } from "@/components/providers/trpc-provider"
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
+import { toast } from "sonner"
 import { AppProvider } from "@/components/providers/app-provider"
-import { ZeroProvider } from "@/components/providers/zero-provider"
 
-export const Providers = ({ children }: PropsWithChildren) => {
+export function Providers({ children }: PropsWithChildren) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 5 * 1000,
+            retry: 1,
+          },
+          mutations: {
+            retry: 1,
+          },
+        },
         queryCache: new QueryCache({
-          onError: (err) => {
-            if (err instanceof HTTPException) {
-              // global error handling, e.g. toast notification ...
+          onError: (error) => {
+            if (error instanceof Error) {
+              toast.error(error.message)
             }
           },
         }),
@@ -28,9 +38,12 @@ export const Providers = ({ children }: PropsWithChildren) => {
   return (
     <ClerkProvider>
       <QueryClientProvider client={queryClient}>
-        <AppProvider>
-          <ZeroProvider>{children}</ZeroProvider>
-        </AppProvider>
+        <ReactQueryDevtools initialIsOpen={false} />
+        <TRPCProvider queryClient={queryClient}>
+          <AppProvider>
+            {children}
+          </AppProvider>
+        </TRPCProvider>
       </QueryClientProvider>
     </ClerkProvider>
   )

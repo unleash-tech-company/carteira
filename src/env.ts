@@ -6,9 +6,6 @@ export const env = {
     PUSHER_SECRET: process.env.PUSHER_SECRET ?? "",
     NEXT_PUBLIC_PUSHER_CLUSTER: process.env.NEXT_PUBLIC_PUSHER_CLUSTER ?? "",
     CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET ?? "",
-    ZERO_UPSTREAM_DB: process.env.ZERO_UPSTREAM_DB ?? "",
-    ZERO_CVR_DB: process.env.ZERO_CVR_DB ?? "",
-    ZERO_CHANGE_DB: process.env.ZERO_CHANGE_DB ?? "",
-    ZERO_AUTH_SECRET: process.env.ZERO_AUTH_SECRET ?? "dev-secret-key",
-    ZERO_REPLICA_FILE: process.env.ZERO_REPLICA_FILE ?? "/tmp/carteira_replica.db",
+    DATABASE_URL: process.env.DATABASE_URL ?? "",
+    NODE_ENV: process.env.NODE_ENV as "development" | "production" | "test" ?? 'development',
 };
