@@ -1,8 +1,7 @@
 "use client"
 
-import { AppProvider } from "@/components/providers/app-provider"
 import { schema } from "@/schema"
-import { ClerkProvider, useUser } from "@clerk/nextjs"
+import { ClerkProvider } from "@clerk/clerk-react"
 import { Zero } from "@rocicorp/zero"
 import { ZeroProvider } from "@rocicorp/zero/react"
 import { decodeJwt } from "jose"
@@ -10,7 +9,6 @@ import Cookies from "js-cookie"
 import { useState, type PropsWithChildren } from "react"
 
 export function Providers({ children }: PropsWithChildren) {
-  const { user } = useUser()
   const [zeroClient] = useState(() => {
     const encodedJWT = Cookies.get("jwt")
     const decodedJWT = encodedJWT && decodeJwt(encodedJWT)
@@ -30,10 +28,8 @@ export function Providers({ children }: PropsWithChildren) {
   })
 
   return (
-    <ClerkProvider>
-      <ZeroProvider zero={zeroClient}>
-        <AppProvider>{children}</AppProvider>
-      </ZeroProvider>
+    <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
+      <ZeroProvider zero={zeroClient}>{children}</ZeroProvider>
     </ClerkProvider>
   )
 }

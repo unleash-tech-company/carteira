@@ -1,102 +1,244 @@
-"use client"
-
-import { useState } from "react"
-import { api } from "@/utils/api"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { TypographyH2, TypographyP } from "@/components/ui/typography"
+import { Schema } from "@/schema"
+import { escapeLike } from "@rocicorp/zero"
+import { useQuery, useZero } from "@rocicorp/zero/react"
+import Cookies from "js-cookie"
+import { MouseEvent, useRef, useState } from "react"
+import { useInterval } from "usehooks-ts"
+import { randInt } from "./rand"
+import { randomMessage } from "./test-data"
+export function ChatSection() {
+  const z = useZero<Schema>()
+  const [users] = useQuery(z.query.user)
+  const [mediums] = useQuery(z.query.medium)
 
-export function PostsSection() {
-  const [newPostName, setNewPostName] = useState("")
-  const [editingPost, setEditingPost] = useState<{ id: number; name: string } | null>(null)
+  const [filterUser, setFilterUser] = useState<string>("")
+  const [filterText, setFilterText] = useState<string>("")
 
-  const utils = api.useUtils()
-  const { data: posts = [] } = api.posts.getAll.useQuery()
-  const createPost = api.posts.create.useMutation({
-    onSuccess: () => utils.posts.getAll.invalidate(),
-  })
-  const updatePost = api.posts.update.useMutation({
-    onSuccess: () => utils.posts.getAll.invalidate(),
-  })
-  const deletePost = api.posts.delete.useMutation({
-    onSuccess: () => utils.posts.getAll.invalidate(),
-  })
+  const all = z.query.message
+  const [allMessages] = useQuery(all)
 
-  const handleCreatePost = async () => {
-    if (!newPostName.trim()) return
-    await createPost.mutateAsync({ name: newPostName })
-    setNewPostName("")
+  let filtered = all.related("medium").related("sender").orderBy("timestamp", "desc")
+
+  if (filterUser) {
+    filtered = filtered.where("senderID", filterUser)
   }
 
-  const handleUpdatePost = async () => {
-    if (!editingPost || !editingPost.name.trim()) return
-    await updatePost.mutateAsync({ id: editingPost.id, name: editingPost.name })
-    setEditingPost(null)
+  if (filterText) {
+    filtered = filtered.where("body", "LIKE", `%${escapeLike(filterText)}%`)
   }
+
+  const [filteredMessages] = useQuery(filtered)
+
+  const hasFilters = filterUser || filterText
+  const [action, setAction] = useState<"add" | "remove" | undefined>(undefined)
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  const deleteRandomMessage = () => {
+    if (allMessages.length === 0) {
+      return false
+    }
+    const index = randInt(allMessages.length)
+    z.mutate.message.delete({ id: allMessages[index]!.id })
+
+    return true
+  }
+
+  const addRandomMessage = () => {
+    z.mutate.message.insert(randomMessage(users, mediums))
+    return true
+  }
+
+  const handleAction = () => {
+    if (action === "add") {
+      return addRandomMessage()
+    } else if (action === "remove") {
+      return deleteRandomMessage()
+    }
+
+    return false
+  }
+
+  useInterval(
+    () => {
+      if (!handleAction()) {
+        setAction(undefined)
+      }
+    },
+    action !== undefined ? 1000 / 60 : null
+  )
+
+  const INITIAL_HOLD_DELAY_MS = 300
+  const handleAddAction = () => {
+    addRandomMessage()
+    // @ts-ignore
+    holdTimerRef.current = window.setTimeout(() => {
+      setAction("add")
+    }, INITIAL_HOLD_DELAY_MS)
+  }
+
+  const handleRemoveAction = (e: MouseEvent | React.TouchEvent) => {
+    if (z.userID === "anon" && "shiftKey" in e && !e.shiftKey) {
+      alert("You must be logged in to delete. Hold shift to try anyway.")
+      return
+    }
+    deleteRandomMessage()
+
+    // @ts-ignore
+    holdTimerRef.current = window.setTimeout(() => {
+      setAction("remove")
+    }, INITIAL_HOLD_DELAY_MS)
+  }
+
+  const stopAction = () => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current)
+      holdTimerRef.current = null
+    }
+
+    setAction(undefined)
+  }
+
+  const editMessage = (e: MouseEvent, id: string, senderID: string, prev: string) => {
+    if (senderID !== z.userID && !e.shiftKey) {
+      alert(
+        "You aren't logged in as the sender of this message. Editing won't be permitted. Hold the shift key to try anyway."
+      )
+      return
+    }
+    const body = prompt("Edit message", prev)
+    z.mutate.message.update({
+      id,
+      body: body ?? prev,
+    })
+  }
+
+  const toggleLogin = async () => {
+    if (z.userID === "anon") {
+      await fetch("/api/login")
+    } else {
+      Cookies.remove("jwt")
+    }
+    location.reload()
+  }
+
+  // If initial sync hasn't completed, these can be empty.
+  if (!users.length || !mediums.length) {
+    return null
+  }
+
+  const user = users.find((user) => user.id === z.userID)?.name ?? "anon"
 
   return (
-    <div className="space-y-4">
-      <TypographyH2>Posts</TypographyH2>
-      
-      <div className="flex gap-2">
-        <Input
-          placeholder="New post name"
-          value={newPostName}
-          onChange={(e) => setNewPostName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleCreatePost()}
-        />
-        <Button onClick={handleCreatePost}>Create Post</Button>
+    <>
+      <div className="controls">
+        <div>
+          <Button
+            onMouseDown={handleAddAction}
+            onMouseUp={stopAction}
+            onMouseLeave={stopAction}
+            onTouchStart={handleAddAction}
+            onTouchEnd={stopAction}
+          >
+            Add Messages
+          </Button>
+          <Button
+            onMouseDown={handleRemoveAction}
+            onMouseUp={stopAction}
+            onMouseLeave={stopAction}
+            onTouchStart={handleRemoveAction}
+            onTouchEnd={stopAction}
+          >
+            Remove Messages
+          </Button>
+          <em>(hold down buttons to repeat)</em>
+        </div>
+        <div
+          style={{
+            justifyContent: "end",
+          }}
+        >
+          {user === "anon" ? "" : `Logged in as ${user}`}
+          <button onMouseDown={() => toggleLogin()}>{user === "anon" ? "Login" : "Logout"}</button>
+        </div>
       </div>
-
-      {posts.length === 0 ? (
-        <TypographyP className="text-muted-foreground">No posts yet. Create your first one!</TypographyP>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Created At</TableHead>
-              <TableHead>Updated At</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {posts.map((post) => (
-              <TableRow key={post.id}>
-                <TableCell>{post.id}</TableCell>
-                <TableCell>
-                  {editingPost?.id === post.id ? (
-                    <Input
-                      value={editingPost.name}
-                      onChange={(e) => setEditingPost({ ...editingPost, name: e.target.value })}
-                      onKeyDown={(e) => e.key === "Enter" && handleUpdatePost()}
-                    />
-                  ) : (
-                    post.name
-                  )}
-                </TableCell>
-                <TableCell>{new Date(post.createdAt).toLocaleString()}</TableCell>
-                <TableCell>{new Date(post.createdAt).toLocaleString()}</TableCell>
-                <TableCell>
-                  {editingPost?.id === post.id ? (
-                    <div className="flex gap-2">
-                      <Button onClick={handleUpdatePost}>Save</Button>
-                      <Button variant="outline" onClick={() => setEditingPost(null)}>Cancel</Button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Button onClick={() => setEditingPost({ id: post.id, name: post.name })}>Edit</Button>
-                      <Button variant="destructive" onClick={() => deletePost.mutate({ id: post.id })}>Delete</Button>
-                    </div>
-                  )}
-                </TableCell>
-              </TableRow>
+      <div className="controls">
+        <div>
+          From:
+          <select onChange={(e) => setFilterUser(e.target.value)} style={{ flex: 1 }}>
+            <option key={""} value="">
+              Sender
+            </option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.name}
+              </option>
             ))}
-          </TableBody>
-        </Table>
+          </select>
+        </div>
+        <div>
+          Contains:
+          <input
+            type="text"
+            placeholder="message"
+            onChange={(e) => setFilterText(e.target.value)}
+            style={{ flex: 1 }}
+          />
+        </div>
+      </div>
+      <div className="controls">
+        <em>
+          {!hasFilters ? (
+            <>Showing all {filteredMessages.length} messages</>
+          ) : (
+            <>
+              Showing {filteredMessages.length} of {allMessages.length} messages. Try opening{" "}
+              <a href="/" target="_blank">
+                another tab
+              </a>{" "}
+              to see them all!
+            </>
+          )}
+        </em>
+      </div>
+      {filteredMessages.length === 0 ? (
+        <h3>
+          <em>No posts found 😢</em>
+        </h3>
+      ) : (
+        <table border={1} cellSpacing={0} cellPadding={6} width="100%">
+          <thead>
+            <tr>
+              <th>Sender</th>
+              <th>Medium</th>
+              <th>Message</th>
+              <th>Sent</th>
+              <th>Edit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredMessages.map((message) => (
+              <tr key={message.id}>
+                <td align="left">{message.sender?.name}</td>
+                <td align="left">{message.medium?.name}</td>
+                <td align="left">{message.body}</td>
+                <td align="right">{formatDate(message.timestamp)}</td>
+                <td onMouseDown={(e) => editMessage(e, message.id, message.senderID, message.body)}>✏️</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
-    </div>
+    </>
   )
-} 
+}
+
+export const formatDate = (timestamp: number) => {
+  const date = new Date(timestamp)
+  const year = date.getFullYear()
+  const month = (date.getMonth() + 1).toString().padStart(2, "0")
+  const day = date.getDate().toString().padStart(2, "0")
+  const hours = date.getHours().toString().padStart(2, "0")
+  const minutes = date.getMinutes().toString().padStart(2, "0")
+  return `${year}-${month}-${day} ${hours}:${minutes}`
+}
