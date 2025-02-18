@@ -3,6 +3,7 @@ import { useUser, useClerk } from "@clerk/nextjs";
 import type { Channel } from "pusher-js";
 import { getPusherClientInstance } from "@/lib/pusher-client";
 import { useLogout } from "@/utils/auth";
+import logger from "@/lib/logger";
 
 const MAX_SESSIONS = 1; // Allow only one active session
 
@@ -33,7 +34,7 @@ export function useSessionMonitor() {
 
   const handleSessionManagement = useCallback(async (newSessionId?: string) => {
     if (!clerk.session) {
-      console.log('[Session Monitor] No active session');
+      logger.info('[Session Monitor] No active session');
       return;
     }
 
@@ -48,11 +49,11 @@ export function useSessionMonitor() {
       const { sessions } = data;
       
       if (!sessions || sessions.length === 0) {
-        console.log('[Session Monitor] No sessions found');
+        logger.info('[Session Monitor] No sessions found');
         return;
       }
 
-      console.log('[Session Monitor] Active sessions:', {
+      logger.info('[Session Monitor] Active sessions:', {
         count: sessions.length,
         sessions: sessions.map(session => ({
           id: session.id,
@@ -63,7 +64,7 @@ export function useSessionMonitor() {
 
       // If we're within the session limit, no action needed
       if (sessions.length <= MAX_SESSIONS) {
-        console.log('[Session Monitor] Session count within limits');
+        logger.info('[Session Monitor] Session count within limits');
         return;
       }
 
@@ -77,25 +78,25 @@ export function useSessionMonitor() {
 
       if (!isCurrentSessionNewest) {
         // Current session is not the newest, log it out
-        console.log('[Session Monitor] Current session is older, logging out');
+        logger.info('[Session Monitor] Current session is older, logging out');
         await logout(currentSession.id, "new_device_login");
       } else {
         // We are the newest session, revoke all older ones
         const olderSessions = sortedSessions.slice(1);
-        console.log('[Session Monitor] Revoking older sessions:', olderSessions.map(s => s.id));
+        logger.info('[Session Monitor] Revoking older sessions:', olderSessions.map(s => s.id));
         
         await Promise.all(
           olderSessions.map(async (session) => {
             try {
               await clerk.signOut({ sessionId: session.id });
             } catch (error) {
-              console.error('[Session Monitor] Failed to revoke session:', session.id, error);
+              logger.error('[Session Monitor] Failed to revoke session:', session.id, error);
             }
           })
         );
       }
     } catch (error) {
-      console.error('[Session Monitor] Session management error:', error);
+              logger.error('[Session Monitor] Session management error:', error);
       if (clerk.session) {
         await logout(clerk.session.id, "session_verification_failed");
       }
@@ -104,7 +105,7 @@ export function useSessionMonitor() {
 
   useEffect(() => {
     if (!user) {
-      console.log('[Session Monitor] No user, skipping monitor setup');
+      logger.info('[Session Monitor] No user, skipping monitor setup');
       return;
     }
 
@@ -112,7 +113,7 @@ export function useSessionMonitor() {
 
     const setupMonitor = async () => {
       try {
-        console.log('[Session Monitor] Starting monitor for user:', user.id);
+        logger.info('[Session Monitor] Starting monitor for user:', user.id);
         
         const pusherClient = getPusherClientInstance();
         const channel = pusherClient.subscribe("private-session");
@@ -126,7 +127,7 @@ export function useSessionMonitor() {
           channel.bind(`evt::session-${user.id}`, async (event: SessionEvent) => {
             if (!mounted) return;
             
-            console.log('[Session Monitor] Received event:', event);
+            logger.info('[Session Monitor] Received event:', event);
             
             try {
               switch (event.type) {
@@ -137,15 +138,15 @@ export function useSessionMonitor() {
                   await handleSessionManagement();
                   break;
                 default:
-                  console.warn('[Session Monitor] Unknown event type:', event.type);
+                  logger.warn('[Session Monitor] Unknown event type:', event.type);
               }
             } catch (error) {
-              console.error('[Session Monitor] Event handling error:', error);
+              logger.error('[Session Monitor] Event handling error:', error);
             }
           });
         }
       } catch (error) {
-        console.error('[Session Monitor] Setup error:', error);
+              logger.error('[Session Monitor] Setup error:', error);
       }
     };
 
@@ -154,7 +155,7 @@ export function useSessionMonitor() {
     return () => {
       mounted = false;
       if (channelRef.current) {
-        console.log('[Session Monitor] Cleaning up monitor for user:', user.id);
+        logger.info('[Session Monitor] Cleaning up monitor for user:', user.id);
         channelRef.current.unbind_all();
         channelRef.current.unsubscribe();
         channelRef.current = null;

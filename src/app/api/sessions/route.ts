@@ -1,10 +1,12 @@
 import { clerkClient, auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import logger from "@/lib/logger";
 
 export async function GET() {
   const { userId } = await auth();
 
   if (!userId) {
+    logger.warn("Unauthorized access attempt to sessions API");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -15,7 +17,7 @@ export async function GET() {
       status: "active",
     });
     
-    // Ensure we return an array of sessions with consistent structure
+    logger.info({ userId }, "Successfully fetched user sessions");
     return NextResponse.json({
       sessions: sessionsResponse.data.map(session => ({
         id: session.id,
@@ -24,7 +26,7 @@ export async function GET() {
       }))
     });
   } catch (error) {
-    console.error("[Sessions API] Error fetching sessions:", error);
+    logger.error({ error, userId }, "Error fetching sessions");
     return NextResponse.json(
       { error: "Failed to fetch sessions", sessions: [] }, 
       { status: 500 }

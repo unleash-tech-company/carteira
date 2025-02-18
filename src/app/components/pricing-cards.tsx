@@ -29,7 +29,7 @@ export function Pricing({ className }: PricingProps) {
             <Badge className="self-start">{CONTENT.badge}</Badge>
           </motion.div>
 
-          <div className="flex gap-2 flex-col">
+          <div className="flex flex-col gap-2">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
@@ -38,7 +38,7 @@ export function Pricing({ className }: PricingProps) {
             >
               <TypographyH2 className="text-5xl tracking-tighter font-regular">
                 100% Grátis{" "}
-                <span className="text-sm md:text-sm tracking-tighter font-regular">
+                <span className="text-sm tracking-tighter md:text-sm font-regular">
                   (E Sem Letrinha Miúda Pra Te Pegar)! 🎉
                 </span>
               </TypographyH2>
@@ -49,7 +49,7 @@ export function Pricing({ className }: PricingProps) {
               animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >
-              <TypographyLead className="text-muted-foreground leading-relaxed max-w-xl">
+              <TypographyLead className="max-w-xl leading-relaxed text-muted-foreground">
                 {CONTENT.description}
               </TypographyLead>
             </motion.div>
@@ -75,26 +75,47 @@ export function Pricing({ className }: PricingProps) {
 
 function PricingCard({ title, description, price, features, buttonText, variant = "outline" }: PricingCardProps) {
   return (
-    <Card className={cn("w-full rounded-md", variant === "featured" && "shadow-2xl")}>
-      <CardHeader>
+    <Card className={cn(
+      "w-full rounded-xl transition-all duration-300",
+      "hover:scale-[1.01]",
+      "bg-gradient-to-b from-white to-gray-50/50 dark:from-zinc-900 dark:to-zinc-900/50",
+      variant === "featured" ? [
+        "shadow-[0_8px_30px_rgb(0,0,0,0.12)]",
+        "dark:shadow-[0_8px_30px_rgb(255,255,255,0.04)]",
+        "border-primary/20",
+        "hover:shadow-[0_10px_40px_rgb(0,0,0,0.15)]",
+        "dark:hover:shadow-[0_10px_40px_rgb(255,255,255,0.06)]"
+      ] : [
+        "hover:shadow-[0_4px_18px_rgb(0,0,0,0.1)]",
+        "dark:hover:shadow-[0_4px_18px_rgb(255,255,255,0.03)]"
+      ]
+    )}>
+      <CardHeader className="p-6 md:p-8">
         <CardTitle>
-          <pre className="flex flex-row gap-4 items-center font-normal">{title}</pre>
+          <pre className="flex flex-row items-center gap-4 text-lg font-normal md:text-xl">{title}</pre>
         </CardTitle>
-        <CardDescription>{description}</CardDescription>
+        <CardDescription className="text-sm md:text-base">{description}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-8 justify-start">
-          <p className="flex flex-row items-center gap-2 text-xl">
-            <span className="text-4xl">R${price}</span>
+      <CardContent className="p-6 pt-0 md:p-8 md:pt-0">
+        <div className="flex flex-col justify-start gap-8">
+          <p className="flex flex-row items-baseline gap-2">
+            <span className="text-4xl font-medium md:text-5xl">R${price}</span>
             <span className="text-sm text-muted-foreground"> / mês</span>
           </p>
-          <div className="flex flex-col gap-4 justify-start">
+          <div className="flex flex-col justify-start gap-5">
             {features.map((feature, index) => (
               <FeatureItem key={index} {...feature} />
             ))}
           </div>
           {buttonText && (
-            <Button variant={variant === "featured" ? "default" : "outline"} className="gap-4">
+            <Button 
+              variant={variant === "featured" ? "default" : "outline"} 
+              className={cn(
+                "gap-4 w-full md:w-auto transition-colors",
+                "hover:bg-primary/90 dark:hover:bg-primary/90",
+                variant === "featured" && "bg-primary text-primary-foreground"
+              )}
+            >
               {buttonText}
             </Button>
           )}
@@ -106,18 +127,18 @@ function PricingCard({ title, description, price, features, buttonText, variant 
 
 function FeatureItem({ title, description, badge }: { title: string; description: string; badge?: string }) {
   return (
-    <div className="flex flex-row gap-4">
-      <Check className="w-4 h-4 mt-2 text-primary" />
-      <div className="flex flex-col">
-        <div className="flex flex-row gap-2">
-          <TypographyP>{title}</TypographyP>
+    <div className="flex flex-row gap-4 group">
+      <Check className="w-4 h-4 mt-1.5 text-primary transition-transform group-hover:scale-110" />
+      <div className="flex flex-col gap-1">
+        <div className="flex flex-row flex-wrap items-center gap-2">
+          <TypographyP className="font-medium">{title}</TypographyP>
           {badge && (
-            <Badge className=" text-xs sm:text-sm text-primary-foreground h-4 opacity-40 self-center whitespace-nowrap">
+            <Badge className="text-[10px] md:text-xs text-primary-foreground h-4 opacity-40 whitespace-nowrap bg-primary/10 hover:bg-primary/20 transition-colors">
               {badge}
             </Badge>
           )}
         </div>
-        <TypographySmall className="text-muted-foreground text-sm">{description}</TypographySmall>
+        <TypographySmall className="text-sm leading-relaxed text-muted-foreground">{description}</TypographySmall>
       </div>
     </div>
   )

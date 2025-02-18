@@ -2,6 +2,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 import { prisma } from "@/server/db";
 import { TRPCError } from "@trpc/server";
+import logger from "@/lib/logger";
 
 const createPostSchema = z.object({
   name: z.string().min(1, "Name must not be empty"),
@@ -28,7 +29,7 @@ export const postsRouter = router({
 
       return posts;
     } catch (error) {
-      console.error("Failed to get posts:", error);
+      logger.error("Failed to get posts:", error);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to get posts",
@@ -50,7 +51,7 @@ export const postsRouter = router({
 
         return post;
       } catch (error) {
-        console.error("Failed to create post:", error);
+        logger.error("Failed to create post:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to create post",
@@ -90,7 +91,7 @@ export const postsRouter = router({
       } catch (error) {
         if (error instanceof TRPCError) throw error;
         
-        console.error("Failed to update post:", error);
+        logger.error("Failed to update post:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to update post",
@@ -129,7 +130,7 @@ export const postsRouter = router({
       } catch (error) {
         if (error instanceof TRPCError) throw error;
         
-        console.error("Failed to delete post:", error);
+        logger.error("Failed to delete post:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to delete post",

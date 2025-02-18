@@ -1,6 +1,6 @@
 import { useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-
+import logger from "@/lib/logger";
 export const useLogout = () => {
   const { signOut } = useClerk();
   const router = useRouter();
@@ -15,7 +15,7 @@ export const useLogout = () => {
         router.push(redirectUrl);
       }, sessionId ? { sessionId } : undefined);
     } catch (error) {
-      console.error("[Auth] Error signing out:", error);
+      logger.error("[Auth] Error signing out:", error);
       router.push("/sign-in");
     }
   };

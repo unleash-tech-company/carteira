@@ -5,11 +5,13 @@ import { getPusherInstance } from "@/lib/pusher";
 import { env } from "@/env";
 import { clerkClient } from "@clerk/nextjs/server";
 import type { Session } from "@clerk/nextjs/server";
+import logger from "@/lib/logger";
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = env.CLERK_WEBHOOK_SECRET;
 
   if (!WEBHOOK_SECRET) {
+    logger.error("Missing CLERK_WEBHOOK_SECRET in environment");
     throw new Error("Please add CLERK_WEBHOOK_SECRET from Clerk Dashboard to .env");
   }
 
@@ -19,6 +21,7 @@ export async function POST(req: Request) {
   const svix_signature = headerPayload.get("svix-signature");
 
   if (!svix_id || !svix_timestamp || !svix_signature) {
+    logger.warn("Missing Svix headers in webhook request");
     return new Response("Error occured -- no svix headers", {
       status: 400,
     });
@@ -38,7 +41,7 @@ export async function POST(req: Request) {
       "svix-signature": svix_signature,
     }) as WebhookEvent;
   } catch (err) {
-    console.error("Error verifying webhook:", err);
+    logger.error({ err }, "Error verifying webhook signature");
     return new Response("Error occured", {
       status: 400,
     });
@@ -50,6 +53,7 @@ export async function POST(req: Request) {
   const sessionId = sessionData.id;
 
   if (!userId) {
+    logger.warn({ sessionData }, "Missing user ID in webhook payload");
     return new Response("Missing user ID", { status: 400 });
   }
 
@@ -58,7 +62,7 @@ export async function POST(req: Request) {
   try {
     switch (eventType) {
       case "session.created": {
-        // Get all active sessions for the user
+        logger.info({ userId, sessionId }, "New session created");
         const clerk = await clerkClient();
         const sessionsResponse = await clerk.sessions.getSessionList({
           userId,
@@ -67,20 +71,21 @@ export async function POST(req: Request) {
 
         const sessions = sessionsResponse.data;
 
-        // If there's more than one session, end all but the newest one
         if (sessions.length > 1) {
-          // Sort sessions by creation date, newest first
           const sortedSessions = [...sessions].sort(
             (a: Session, b: Session) => 
               new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
 
-          // Get all session IDs except the newest one
           const excessSessionIds = sortedSessions
             .slice(1)
             .map((session: Session) => session.id);
 
-          // End excess sessions
+          logger.info(
+            { userId, excessSessionIds },
+            "Revoking excess sessions"
+          );
+
           await Promise.all(
             excessSessionIds.map(async (id: string) => {
               const clerk = await clerkClient();
@@ -88,7 +93,6 @@ export async function POST(req: Request) {
             })
           );
 
-          // Notify clients about the session revocation
           await pusher.trigger("private-session", `evt::session-${userId}`, {
             type: "session-ended",
             data: {
@@ -103,6 +107,10 @@ export async function POST(req: Request) {
       case "session.ended":
       case "session.removed":
       case "session.revoked":
+        logger.info(
+          { userId, sessionId, eventType },
+          "Session state changed"
+        );
         await pusher.trigger("private-session", `evt::session-${userId}`, {
           type: "session-ended",
           data: {
@@ -113,10 +121,13 @@ export async function POST(req: Request) {
         break;
 
       default:
-        console.log(`Unhandled webhook event: ${eventType}`);
+        logger.debug({ eventType }, "Unhandled webhook event");
     }
   } catch (error) {
-    console.error("Error processing webhook:", error);
+    logger.error(
+      { error, userId, sessionId, eventType },
+      "Error processing webhook"
+    );
     return new Response("Error processing webhook", { status: 500 });
   }
 
