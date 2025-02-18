@@ -15,4 +15,4 @@ model Post {
   userId    String
 
   @@index([userId])
-}
+} 
