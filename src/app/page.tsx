@@ -12,7 +12,7 @@ import Link from "next/link"
 
 export default function HomePage() {
   return (
-    <main className="flex min-h-screen flex-col overflow-x-hidden">
+    <main className="flex flex-col min-h-screen overflow-x-hidden">
       <AuroraBackground>
         <PartnersSection className="" />
         <SignedOut>
@@ -28,6 +28,11 @@ export default function HomePage() {
       </AuroraBackground>
       <ValueProposition />
       <Pricing />
+      <div className="flex items-center justify-center">
+        <Link href="https://buy.polar.sh/polar_cl_J4JVGlN6zndXSU9SDOdVbi82QPA3Hdx8c8YUx1WRjiD">
+          <RainbowButton>Apoie o projeto</RainbowButton>
+        </Link>
+      </div>
       <BottomCtaSection />
       <Footer />
     </main>

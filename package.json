@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "yarn db:push-migrations && next build",
+    "build": "yarn db:generate && yarn db:push-migrations && next build",
     "db:generate": "prisma generate",
     "db:create-migration": "prisma migrate dev --create-only",
     "db:push-migrations": "prisma migrate deploy",
