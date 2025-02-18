@@ -14,21 +14,21 @@ export default function HomePage() {
   return (
     <main className="flex flex-col min-h-screen overflow-x-hidden">
       <AuroraBackground>
-        <PartnersSection className="" />
+        <PartnersSection className="px-4" />
         <SignedOut>
           <Link href="/sign-in">
-            <RainbowButton className="mt-10">Comece agora</RainbowButton>
+            <RainbowButton className="mt-10 mx-4">Comece agora</RainbowButton>
           </Link>
         </SignedOut>
         <SignedIn>
           <Link href="/dashboard">
-            <RainbowButton className="mt-10">Vá ao painel</RainbowButton>
+            <RainbowButton className="mt-10 mx-4">Vá ao painel</RainbowButton>
           </Link>
         </SignedIn>
       </AuroraBackground>
       <ValueProposition />
       <Pricing />
-      <div className="flex items-center justify-center">
+      <div className="flex items-center justify-center px-4">
         <Link href="https://buy.polar.sh/polar_cl_J4JVGlN6zndXSU9SDOdVbi82QPA3Hdx8c8YUx1WRjiD">
           <RainbowButton>Apoie o projeto</RainbowButton>
         </Link>
