@@ -6,7 +6,7 @@
     "build": "yarn db:push-migrations && next build",
     "db:generate": "prisma generate",
     "db:create-migration": "prisma migrate dev --create-only",
-    "db:push-migrations": "prisma migrate deploy",
+    "db:push-migrations": "prisma migrate push",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "dev": "next dev",
