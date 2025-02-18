@@ -1,10 +1,10 @@
 "use client"
 
-import { LogoCarousel } from "@/components/ui/logo-carousel"
-import { cn } from "@/lib/utils"
-import { useIsMobile } from "@/hooks/use-mobile"
-import { Typewriter } from "@/components/ui/typewriter"
 import { GradientHeading, headingVariants } from "@/components/ui/gradient-headings"
+import { LogoCarousel } from "@/components/ui/logo-carousel"
+import { Typewriter } from "@/components/ui/typewriter"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { cn } from "@/lib/utils"
 import Image from "next/image"
 
 export function PartnersSection({ className }: PartnersSectionProps) {
@@ -12,7 +12,7 @@ export function PartnersSection({ className }: PartnersSectionProps) {
 
   return (
     <section className={cn(className)}>
-      <div className={cn("max-w-7xl mx-auto px-4 flex flex-col items-center gap-4")}>
+      <div className={cn("max-w-7xl mx-auto px-4 flex flex-col items-center")}>
         <div className={cn("flex flex-col items-center text-center")}>
           <GradientHeading variant="secondary">{CONTENT.title.primary}</GradientHeading>
           <GradientHeading size="xl">{CONTENT.title.secondary}</GradientHeading>

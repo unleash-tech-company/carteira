@@ -1,12 +1,12 @@
 "use client"
 
-import { Check, Gift, MoveRight, PartyPopper, PhoneCall } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { TypographyH2, TypographyP, TypographyLead, TypographySmall } from "@/components/ui/typography"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { TypographyH2, TypographyLead, TypographyP, TypographySmall } from "@/components/ui/typography"
 import { cn } from "@/lib/utils"
 import { motion, useInView } from "framer-motion"
+import { Check } from "lucide-react"
 import { useRef } from "react"
 
 interface PricingProps {
@@ -18,7 +18,7 @@ export function Pricing({ className }: PricingProps) {
   const isInView = useInView(ref, { once: true, amount: 0.3 })
 
   return (
-    <div className={cn(className)} ref={ref}>
+    <div className={cn(className, "py-40")} ref={ref}>
       <div className={cn("container mx-auto")}>
         <div className={cn("flex gap-4 flex-col")}>
           <motion.div
@@ -75,21 +75,22 @@ export function Pricing({ className }: PricingProps) {
 
 function PricingCard({ title, description, price, features, buttonText, variant = "outline" }: PricingCardProps) {
   return (
-    <Card className={cn(
-      "w-full rounded-xl transition-all duration-300",
-      "hover:scale-[1.01]",
-      "bg-gradient-to-b from-white to-gray-50/50 dark:from-zinc-900 dark:to-zinc-900/50",
-      variant === "featured" ? [
-        "shadow-[0_8px_30px_rgb(0,0,0,0.12)]",
-        "dark:shadow-[0_8px_30px_rgb(255,255,255,0.04)]",
-        "border-primary/20",
-        "hover:shadow-[0_10px_40px_rgb(0,0,0,0.15)]",
-        "dark:hover:shadow-[0_10px_40px_rgb(255,255,255,0.06)]"
-      ] : [
-        "hover:shadow-[0_4px_18px_rgb(0,0,0,0.1)]",
-        "dark:hover:shadow-[0_4px_18px_rgb(255,255,255,0.03)]"
-      ]
-    )}>
+    <Card
+      className={cn(
+        "w-full rounded-xl transition-all duration-300",
+        "hover:scale-[1.01]",
+        "bg-gradient-to-b from-white to-gray-50/50 dark:from-zinc-900 dark:to-zinc-900/50",
+        variant === "featured"
+          ? [
+              "shadow-[0_8px_30px_rgb(0,0,0,0.12)]",
+              "dark:shadow-[0_8px_30px_rgb(255,255,255,0.04)]",
+              "border-primary/20",
+              "hover:shadow-[0_10px_40px_rgb(0,0,0,0.15)]",
+              "dark:hover:shadow-[0_10px_40px_rgb(255,255,255,0.06)]",
+            ]
+          : ["hover:shadow-[0_4px_18px_rgb(0,0,0,0.1)]", "dark:hover:shadow-[0_4px_18px_rgb(255,255,255,0.03)]"]
+      )}
+    >
       <CardHeader className="p-6 md:p-8">
         <CardTitle>
           <pre className="flex flex-row items-center gap-4 text-lg font-normal md:text-xl">{title}</pre>
@@ -108,8 +109,8 @@ function PricingCard({ title, description, price, features, buttonText, variant 
             ))}
           </div>
           {buttonText && (
-            <Button 
-              variant={variant === "featured" ? "default" : "outline"} 
+            <Button
+              variant={variant === "featured" ? "default" : "outline"}
               className={cn(
                 "gap-4 w-full md:w-auto transition-colors",
                 "hover:bg-primary/90 dark:hover:bg-primary/90",

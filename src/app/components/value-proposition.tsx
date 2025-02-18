@@ -1,14 +1,13 @@
-import { Shield, Calculator, DollarSign, LayoutDashboard, Bell, Smartphone } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { TypographyH2, TypographyH3, TypographyLead, TypographyP } from "@/components/ui/typography"
 import { cn } from "@/lib/utils"
-import { TypographyH2, TypographyP, TypographyLead, TypographyH3 } from "@/components/ui/typography"
-import { title } from "process"
+import { Bell, Calculator, DollarSign, LayoutDashboard, Shield, Smartphone } from "lucide-react"
 
 export function ValueProposition() {
   return (
     <div className={cn("w-full")}>
       <div className={cn("container mx-auto")}>
-        <div className={cn("flex gap-4 py-20 lg:py-40 flex-col items-start")}>
+        <div className={cn("flex gap-4 py-20 lg:py-0 flex-col items-start")}>
           <div>
             <Badge>{CONTENT.badge}</Badge>
           </div>
