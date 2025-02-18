@@ -1,3 +1,5 @@
+"use client"
+
 import { ptBR, type Locale } from "@/lib/i18n/pt-BR"
 import { useCallback, useEffect, useState } from "react"
 
