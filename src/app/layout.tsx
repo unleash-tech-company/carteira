@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next"
 import type { Metadata } from "next"
 import { Providers } from "./components/providers"
 
@@ -17,7 +18,8 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className="antialiased">
-          <Providers>{children}</Providers>
+        <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   )
