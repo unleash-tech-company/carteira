@@ -11,13 +11,14 @@ const useHandleSignOut = () => {
 
   return async (currentSessionId: string) => {
     try {
+      console.log('[Session Monitor] Signing out session:', currentSessionId);
       await signOut(() => {
         router.push(`/sign-in?forcedRedirect=true`);
       }, {
         sessionId: currentSessionId
       });
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('[Session Monitor] Error signing out:', error);
       router.push(`/sign-in?forcedRedirect=true`);
     }
   };
@@ -33,11 +34,18 @@ const useHandleSessionRemoval = () => {
       const isCurrentSessionExcess =
         hasExcess && currentSession && excessSessionIds.includes(currentSession.id);
 
+      console.log('[Session Monitor] Checking sessions:', {
+        hasExcess,
+        isCurrentSessionExcess,
+        currentSessionId: currentSession?.id,
+        excessSessionIds
+      });
+
       if (!isCurrentSessionExcess) return;
 
       await handleSignOut(currentSession.id);
     } catch (error) {
-      console.error('Error removing session:', error);
+      console.error('[Session Monitor] Error removing session:', error);
     }
   };
 };
@@ -50,6 +58,7 @@ export function useSessionMonitor() {
   useEffect(() => {
     if (!user) return;
 
+    console.log('[Session Monitor] Starting monitor for user:', user.id);
     const pusherClient = getPusherClientInstance();
     const channel = pusherClient.subscribe("private-session");
 
@@ -62,6 +71,7 @@ export function useSessionMonitor() {
         message: string;
       }; 
     }) => {
+      console.log('[Session Monitor] Received event:', data);
       if (data.type === "session-ended" || data.type === "session-created") {
         const { sessionId } = data.data;
         await handleSessionRemoval([sessionId]);
@@ -70,6 +80,7 @@ export function useSessionMonitor() {
 
     return () => {
       if (channelRef.current) {
+        console.log('[Session Monitor] Cleaning up monitor for user:', user.id);
         channelRef.current.unbind_all();
         channelRef.current.unsubscribe();
       }

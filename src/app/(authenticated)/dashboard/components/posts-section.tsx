@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState } from "react"
 import { api } from "@/utils/api"
@@ -78,7 +78,7 @@ export function PostsSection() {
                   )}
                 </TableCell>
                 <TableCell>{new Date(post.createdAt).toLocaleString()}</TableCell>
-                <TableCell>{new Date(post.createdAt).toLocaleString()}</TableCell>
+                <TableCell>{new Date(post.updatedAt).toLocaleString()}</TableCell>
                 <TableCell>
                   {editingPost?.id === post.id ? (
                     <div className="flex gap-2">
