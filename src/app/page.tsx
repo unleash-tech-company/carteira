@@ -21,7 +21,7 @@ export default function HomePage() {
           </Link>
         </SignedOut>
         <SignedIn>
-          <Link href="/dashboard" className="rounded-md bg-primary px-4 py-2 text-white hover:bg-primary/90">
+          <Link href="/dashboard">
             <RainbowButton className="mt-10">Vá ao painel</RainbowButton>
           </Link>
         </SignedIn>

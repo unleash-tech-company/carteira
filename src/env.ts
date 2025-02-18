@@ -8,4 +8,6 @@ export const env = {
     CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET ?? "",
     DATABASE_URL: process.env.DATABASE_URL ?? "",
     NODE_ENV: process.env.NODE_ENV as "development" | "production" | "test" ?? 'development',
+    VERCEL_URL: process.env.VERCEL_URL ?? "",
+    PORT: process.env.PORT ?? 3000,
 };
