@@ -1,0 +1,7 @@
+{
+  "workbench.colorCustomizations": {
+    "minimap.errorHighlight": "#ff0000",
+    "terminal.background": "#00000000"
+  },
+  "files.exclude": {}
+}
