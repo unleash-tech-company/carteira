@@ -17,7 +17,7 @@ export default function LandingPage() {
     <main className="flex min-h-screen flex-col overflow-x-hidden">
       <AuroraBackground>
         <PartnersSection className="" />
-        <Link to="/sign-in">
+        <Link to="/login">
           <RainbowButton className="mt-10">Comece agora</RainbowButton>
         </Link>
         <Link to="/dashboard">
