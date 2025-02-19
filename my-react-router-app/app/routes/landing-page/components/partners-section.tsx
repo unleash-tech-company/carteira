@@ -6,6 +6,20 @@ import { Typewriter } from "@/components/ui/typewriter"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 
+import appleTv from "./logos/apple-tv.svg"
+import audible from "./logos/audible.svg"
+import bitwarden from "./logos/bitwarden.svg"
+import canvaPro from "./logos/canva-pro.svg"
+import coursera from "./logos/coursera.svg"
+import crunchyroll from "./logos/crunchroll.svg"
+import grammarly from "./logos/gramally.svg"
+import hbo from "./logos/hbo.svg"
+import netflix from "./logos/netflix.svg"
+import primeVideo from "./logos/prime-video.svg"
+import skillshare from "./logos/skill-share.svg"
+import spotify from "./logos/spotify.svg"
+import udemy from "./logos/udemy.svg"
+
 export function PartnersSection({ className }: PartnersSectionProps) {
   const isMobile = useIsMobile()
 
@@ -40,8 +54,8 @@ const partners = [
     name: "Bitwarden",
     id: 1,
     img: (props: any) => (
-      <image
-        src="/logos/bitwarden.svg"
+      <img
+        src={bitwarden}
         width={100}
         height={100}
         alt="Bitwarden"
@@ -53,21 +67,15 @@ const partners = [
     name: "Netflix",
     id: 2,
     img: (props: any) => (
-      <image
-        src="/logos/netflix.svg"
-        width={100}
-        height={100}
-        alt="Netflix"
-        className={cn("h-full w-full object-contain", props.className)}
-      />
+      <img src={netflix} alt="Netflix" className={cn("h-full w-full object-contain", props.className)} />
     ),
   },
   {
     name: "Spotify",
     id: 3,
     img: (props: any) => (
-      <image
-        src="/logos/spotify.svg"
+      <img
+        src={spotify}
         width={100}
         height={100}
         alt="Spotify"
@@ -79,8 +87,8 @@ const partners = [
     name: "Apple TV+",
     id: 4,
     img: (props: any) => (
-      <image
-        src="/logos/apple-tv.svg"
+      <img
+        src={appleTv}
         width={100}
         height={100}
         alt="Apple TV+"
@@ -92,8 +100,8 @@ const partners = [
     name: "Prime Video",
     id: 6,
     img: (props: any) => (
-      <image
-        src="/logos/prime-video.svg"
+      <img
+        src={primeVideo}
         width={100}
         height={100}
         alt="Prime Video"
@@ -105,10 +113,10 @@ const partners = [
     name: "Audible",
     id: 7,
     img: (props: any) => (
-      <image
+      <img
         width={100}
         height={100}
-        src="/logos/audible.svg"
+        src={audible}
         alt="Audible"
         className={cn("h-full w-full object-contain", props.className)}
       />
@@ -118,10 +126,10 @@ const partners = [
     name: "Coursera",
     id: 8,
     img: (props: any) => (
-      <image
+      <img
         width={100}
         height={100}
-        src="/logos/coursera.svg"
+        src={coursera}
         alt="Coursera"
         className={cn("h-full w-full object-contain", props.className)}
       />
@@ -131,10 +139,10 @@ const partners = [
     name: "Crunchyroll",
     id: 9,
     img: (props: any) => (
-      <image
+      <img
         width={100}
         height={100}
-        src="/logos/crunchroll.svg"
+        src={crunchyroll}
         alt="Crunchyroll"
         className={cn("h-full w-full object-contain", props.className)}
       />
@@ -144,10 +152,10 @@ const partners = [
     name: "HBO",
     id: 10,
     img: (props: any) => (
-      <image
+      <img
         width={100}
         height={100}
-        src="/logos/hbo.svg"
+        src={hbo}
         alt="HBO"
         className={cn("h-full w-full object-contain", props.className)}
       />
@@ -157,10 +165,10 @@ const partners = [
     name: "Udemy",
     id: 11,
     img: (props: any) => (
-      <image
+      <img
         width={100}
         height={100}
-        src="/logos/udemy.svg"
+        src={udemy}
         alt="Udemy"
         className={cn("h-full w-full object-contain", props.className)}
       />
@@ -170,8 +178,8 @@ const partners = [
     name: "Grammarly",
     id: 12,
     img: (props: any) => (
-      <image
-        src="/logos/gramally.svg"
+      <img
+        src={grammarly}
         alt="Grammarly"
         className={cn("h-full w-full object-contain", props.className)}
         width={100}
@@ -183,10 +191,10 @@ const partners = [
     name: "Skillshare",
     id: 13,
     img: (props: any) => (
-      <image
+      <img
         width={100}
         height={100}
-        src="/logos/skill-share.svg"
+        src={skillshare}
         alt="Skillshare"
         className={cn("h-full w-full object-contain", props.className)}
       />
@@ -196,8 +204,8 @@ const partners = [
     name: "Canva Pro",
     id: 14,
     img: (props: any) => (
-      <image
-        src="/logos/canva-pro.svg"
+      <img
+        src={canvaPro}
         width={100}
         height={100}
         alt="Canva Pro"

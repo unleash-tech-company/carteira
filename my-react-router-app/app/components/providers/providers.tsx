@@ -14,17 +14,17 @@ export function Providers({ children }: PropsWithChildren) {
     const decodedJWT = encodedJWT && decodeJwt(encodedJWT)
     const userID = decodedJWT?.sub ? (decodedJWT.sub as string) : "anon"
 
-    const zero = new Zero({
+    const z = new Zero({
+      userID,
       auth: () => encodedJWT,
-      userID: userID, // ID do usuário atual
-      server: "http://localhost:4848", // URL do Zero Cache
-      schema: schema,
+      server: "http://localhost:4848",
+      schema,
       // This is often easier to develop with if you're frequently changing
       // the schema. Switch to 'idb' for local-persistence.
-      kvStore: "mem",
+      kvStore: "idb",
     })
 
-    return zero
+    return z
   })
 
   return (
