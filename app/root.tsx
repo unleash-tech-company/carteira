@@ -1,6 +1,5 @@
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router"
 
-import { ClerkAuthProvider } from "@/components/providers/clerk-provider"
 import type { Route } from "./+types/root"
 import "./app.css"
 import { Providers } from "./components/providers/providers"
@@ -39,9 +38,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function Root() {
   return (
     <Providers>
-      <ClerkAuthProvider>
-        <Outlet />
-      </ClerkAuthProvider>
+      <Outlet />
     </Providers>
   )
 }

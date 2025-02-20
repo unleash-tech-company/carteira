@@ -6,103 +6,91 @@
 // for more complex examples, including many-to-many.
 
 import {
-  ANYONE_CAN,
-  boolean,
   createSchema,
   definePermissions,
-  number,
   relationships,
   string,
   table,
+  type Condition,
   type ExpressionBuilder,
   type Row,
 } from "@rocicorp/zero"
 
-const message = table("message")
+const Subscription = table("subscription")
   .columns({
     id: string(),
-    senderID: string().from("sender_id"),
-    mediumID: string().from("medium_id"),
-    body: string(),
-    timestamp: number(),
+    owner_id: string(),
+    // is_public ? - Nesse primeiro momento todas as assinaturas são privadas
   })
   .primaryKey("id")
 
-const user = table("user")
+const SubscriptionPassword = table("subscription_password")
   .columns({
     id: string(),
-    name: string(),
-    partner: boolean(),
+    subscription_id: string(),
+    encrypted_password: string(),
   })
   .primaryKey("id")
 
-const medium = table("medium")
+const SubscriptionUser = table("subscription_user")
   .columns({
     id: string(),
-    name: string(),
+    subscription_id: string(),
+    user_id: string(),
   })
   .primaryKey("id")
 
-const messageRelationships = relationships(message, ({ one }) => ({
-  sender: one({
-    sourceField: ["senderID"],
-    destField: ["id"],
-    destSchema: user,
+const SubscriptionRelationships = relationships(Subscription, ({ one, many }) => ({
+  password: one({
+    destSchema: SubscriptionPassword,
+    destField: ["subscription_id"],
+    sourceField: ["id"],
   }),
-  medium: one({
-    sourceField: ["mediumID"],
-    destField: ["id"],
-    destSchema: medium,
+  usersAllowed: many({
+    destSchema: SubscriptionUser,
+    destField: ["subscription_id"],
+    sourceField: ["id"],
   }),
 }))
 
 export const schema = createSchema(1, {
-  tables: [user, medium, message],
-  relationships: [messageRelationships],
+  tables: [Subscription, SubscriptionPassword, SubscriptionUser],
+  relationships: [SubscriptionRelationships],
 })
 
 export type Schema = typeof schema
-export type Message = Row<typeof schema.tables.message>
-export type Medium = Row<typeof schema.tables.medium>
-export type User = Row<typeof schema.tables.user>
+type TableName = keyof Schema["tables"]
+type PermissionRule<TTable extends TableName> = (authData: AuthData, eb: ExpressionBuilder<Schema, TTable>) => Condition
+export type Subscription = Row<typeof schema.tables.subscription>
 
 // The contents of your decoded JWT.
 type AuthData = {
   sub: string | null
 }
 
-export const permissions = definePermissions<AuthData, Schema>(schema, () => {
-  const allowIfLoggedIn = (authData: AuthData, { cmpLit }: ExpressionBuilder<Schema, keyof Schema["tables"]>) =>
-    cmpLit(authData.sub, "IS NOT", null)
+function and<TTable extends TableName>(...rules: PermissionRule<TTable>[]): PermissionRule<TTable> {
+  return (authData, eb) => eb.and(...rules.map((rule) => rule(authData, eb)))
+}
+function or<TTable extends TableName>(...rules: PermissionRule<TTable>[]): PermissionRule<TTable> {
+  return (authData, eb) => eb.or(...rules.map((rule) => rule(authData, eb)))
+}
 
-  const allowIfMessageSender = (authData: AuthData, { cmp }: ExpressionBuilder<Schema, "message">) =>
-    cmp("senderID", "=", authData.sub ?? "")
+export const permissions = definePermissions<AuthData, Schema>(schema, () => {
+  const allowIfSubscriptionOwner = (authData: AuthData, { cmp }: ExpressionBuilder<Schema, "subscription">) =>
+    cmp("owner_id", "=", authData.sub ?? "")
+  const allowIfIsInWhitelist = (authData: AuthData, { exists }: ExpressionBuilder<Schema, "subscription">) =>
+    exists("usersAllowed", (q) => q.where((q) => q.cmp("user_id", "=", authData.sub || "")))
 
   return {
-    medium: {
+    subscription: {
       row: {
-        select: ANYONE_CAN,
-      },
-    },
-    user: {
-      row: {
-        select: ANYONE_CAN,
-      },
-    },
-    message: {
-      row: {
-        // anyone can insert
-        insert: ANYONE_CAN,
+        delete: [allowIfSubscriptionOwner],
         update: {
-          // sender can only edit own messages
-          preMutation: [allowIfMessageSender],
-          // sender can only edit messages to be owned by self
-          postMutation: [allowIfMessageSender],
+          postMutation: [allowIfSubscriptionOwner],
+          putMutation: [allowIfSubscriptionOwner],
         },
-        // must be logged in to delete
-        delete: [allowIfLoggedIn],
-        // everyone can read current messages
-        select: ANYONE_CAN,
+        select: [or(allowIfSubscriptionOwner, allowIfIsInWhitelist)],
+        insert: [allowIfSubscriptionOwner],
       },
     },
   }
