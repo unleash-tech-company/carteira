@@ -1,3 +1,3 @@
-CREATE DATABASE zstart;
-CREATE DATABASE zstart_cvr;
-CREATE DATABASE zstart_cdb;
+CREATE DATABASE carteira;
+CREATE DATABASE carteira_cvr;
+CREATE DATABASE carteira_cdb;
