@@ -9,7 +9,7 @@ import { Link } from "react-router"
 import type { Route } from "../+types/landing-page"
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "New React Router App" }, { name: "description", content: "Welcome to React Router!" }]
+  return [{ title: "Economize AI" }, { name: "description", content: "Economize AI" }]
 }
 
 export default function LandingPage() {

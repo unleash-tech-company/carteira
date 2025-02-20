@@ -24,7 +24,7 @@ const Subscription = table("subscription")
   })
   .primaryKey("id")
 
-const SubscriptionPassword = table("subscription_password")
+const relSubscriptionPassword = table("subscription_password")
   .columns({
     id: string(),
     subscription_id: string(),
@@ -32,7 +32,7 @@ const SubscriptionPassword = table("subscription_password")
   })
   .primaryKey("id")
 
-const SubscriptionUser = table("subscription_user")
+const relSubscriptionUser = table("subscription_user")
   .columns({
     id: string(),
     subscription_id: string(),
@@ -42,19 +42,19 @@ const SubscriptionUser = table("subscription_user")
 
 const SubscriptionRelationships = relationships(Subscription, ({ one, many }) => ({
   password: one({
-    destSchema: SubscriptionPassword,
+    destSchema: relSubscriptionPassword,
     destField: ["subscription_id"],
     sourceField: ["id"],
   }),
   usersAllowed: many({
-    destSchema: SubscriptionUser,
+    destSchema: relSubscriptionUser,
     destField: ["subscription_id"],
     sourceField: ["id"],
   }),
 }))
 
 export const schema = createSchema(1, {
-  tables: [Subscription, SubscriptionPassword, SubscriptionUser],
+  tables: [Subscription, relSubscriptionPassword, relSubscriptionUser],
   relationships: [SubscriptionRelationships],
 })
 
