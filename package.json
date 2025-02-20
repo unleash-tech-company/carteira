@@ -4,14 +4,14 @@
   "type": "module",
   "scripts": {
     "build": "react-router build",
-    "dev": "concurrently \"react-router dev\" \"npm run dev:zero-cache \"",
-    "dev:silent": "concurrently \"react-router dev\" \"npm run dev:zero-cache > /dev/null 2>&1\"",
+    "dev": "concurrently \"react-router dev\" \"npm run zero\"",
+    "dev:silent": "concurrently \"react-router dev\" \"npm run zero > /dev/null 2>&1\"",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
-    "dev:db-up": "docker compose --env-file .env -f ./docker/docker-compose.yml up",
-    "dev:db-down": "docker compose --env-file .env -f ./docker/docker-compose.yml down",
-    "dev:clean": "source .env && docker volume rm -f docker_zstart_pgdata && rm -rf \"${ZERO_REPLICA_FILE}\"*",
-    "dev:zero-cache": "zero-cache-dev -p app/db/schema.ts",
+    "zero": "zero-cache-dev -p app/db/schema.ts",
+    "zero:db-up": "docker compose --env-file .env -f ./docker/docker-compose.yml up",
+    "zero:db-down": "docker compose --env-file .env -f ./docker/docker-compose.yml down",
+    "zero:clean": "source .env && docker volume rm -f docker_zstart_pgdata && rm -rf \"${ZERO_REPLICA_FILE}\"*",
     "tscheck": "tsc --noEmit"
   },
   "dependencies": {
