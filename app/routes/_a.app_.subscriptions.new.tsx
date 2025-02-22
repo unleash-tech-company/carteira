@@ -1,15 +1,29 @@
 import { SuccessScreen } from "@/components/subscription/success-screen"
 import { TemplateSelect } from "@/components/subscription/template-select"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form"
+import { ControlledInput } from "@/components/ui/form/controlled-input"
 import { TypographyH2 } from "@/components/ui/typography"
 import type { Schema } from "@/db/schema"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { useZero } from "@rocicorp/zero/react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useState } from "react"
-import { NumericFormat } from "react-number-format"
+import { useForm } from "react-hook-form"
 import { useNavigate } from "react-router"
+import { toast } from "sonner"
 import { v4 as uuidv4 } from "uuid"
+import * as z from "zod"
+
+const formSchema = z.object({
+  templateId: z.string().nullable(),
+  name: z.string().min(1, "O nome da assinatura é obrigatório"),
+  description: z.string().optional(),
+  maxMembers: z.string().min(1, "O número máximo de membros é obrigatório"),
+  price: z.string().min(1, "O preço da assinatura é obrigatório"),
+})
+
+type FormValues = z.infer<typeof formSchema>
 
 const formSteps = [
   {
@@ -45,17 +59,17 @@ export default function NovaAssinatura() {
   const [currentStep, setCurrentStep] = useState(0)
   const [showSuccess, setShowSuccess] = useState(false)
   const [subscriptionId, setSubscriptionId] = useState("")
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    maxMembers: "",
-    price: "",
-  })
 
-  const updateFormData = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      templateId: null,
+      name: "",
+      description: "",
+      maxMembers: "",
+      price: "",
+    },
+  })
 
   const handleTemplateSelect = (
     template: {
@@ -66,21 +80,18 @@ export default function NovaAssinatura() {
       recommendedPriceInCents: number
     } | null
   ) => {
-    setSelectedTemplateId(template?.id ?? null)
     if (template) {
-      setFormData({
-        name: template.name,
-        description: template.description ?? "",
-        maxMembers: template.recommendedMaxMembers.toString(),
-        price: (template.recommendedPriceInCents / 100).toFixed(2),
-      })
+      form.setValue("templateId", template.id)
+      form.setValue("name", template.name)
+      form.setValue("description", template.description ?? "")
+      form.setValue("maxMembers", template.recommendedMaxMembers.toString())
+      form.setValue("price", (template.recommendedPriceInCents / 100).toFixed(2))
     } else {
-      setFormData({
-        name: "",
-        description: "",
-        maxMembers: "",
-        price: "",
-      })
+      form.setValue("templateId", null)
+      form.setValue("name", "")
+      form.setValue("description", "")
+      form.setValue("maxMembers", "")
+      form.setValue("price", "")
     }
   }
 
@@ -96,37 +107,31 @@ export default function NovaAssinatura() {
     }
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    if (!formData.name?.trim()) {
-      // TODO: Adicionar toast de erro
-      return
-    }
-
-    const numericPrice = Number(formData.price.replace(/\D/g, "")) / 100
+  async function onSubmit(values: FormValues) {
+    const numericPrice = Number(values.price.replace(/\D/g, "")) / 100
 
     try {
       const uuid = uuidv4()
       const data = {
         id: uuid,
         ownerId: z.userID || "",
-        templateId: selectedTemplateId,
-        name: formData.name,
-        description: formData.description,
+        templateId: values.templateId,
+        name: values.name,
+        description: values.description,
         type: "private",
-        maxMembers: Number(formData.maxMembers),
+        maxMembers: Number(values.maxMembers),
         princeInCents: numericPrice * 100,
         renewalDate: new Date().getTime(),
         status: "active",
       }
-      console.log(data)
       await z.mutate.subscription.insert(data)
       setSubscriptionId(uuid)
       setShowSuccess(true)
     } catch (error) {
       console.error(error)
-      // TODO: Adicionar toast de erro
+      toast.error("Erro ao criar assinatura", {
+        description: "Ocorreu um erro ao criar sua assinatura. Por favor, tente novamente.",
+      })
     }
   }
 
@@ -134,9 +139,9 @@ export default function NovaAssinatura() {
     return (
       <AnimatePresence mode="wait">
         <SuccessScreen
-          subscriptionName={formData.name}
+          subscriptionName={form.getValues("name")}
           subscriptionId={subscriptionId}
-          name={formData.name}
+          name={form.getValues("name")}
           onBackToHome={() => navigate("/app")}
         />
       </AnimatePresence>
@@ -147,41 +152,41 @@ export default function NovaAssinatura() {
     <div className="min-h-screen flex flex-col">
       <div className="container py-8 flex-1 flex items-center justify-center">
         <div className="w-full max-w-xl">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="relative overflow-hidden min-h-[200px]">
-              <AnimatePresence initial={false} mode="wait" custom={currentStep}>
-                <NovaAssinaturaFormField
-                  currentStep={currentStep}
-                  selectedTemplateId={selectedTemplateId}
-                  formData={formData}
-                  handleTemplateSelect={handleTemplateSelect}
-                  updateFormData={updateFormData}
-                />
-              </AnimatePresence>
-            </div>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="relative overflow-hidden min-h-[200px]">
+                <AnimatePresence initial={false} mode="wait" custom={currentStep}>
+                  <NovaAssinaturaFormField
+                    form={form}
+                    currentStep={currentStep}
+                    handleTemplateSelect={handleTemplateSelect}
+                  />
+                </AnimatePresence>
+              </div>
 
-            <div className="flex gap-4 justify-end ">
-              <Button type="button" variant="outline" onClick={prevStep} disabled={currentStep === 0}>
-                Voltar
-              </Button>
-
-              {currentStep === formSteps.length - 1 ? (
-                <Button type="submit">Criar Assinatura</Button>
-              ) : (
-                <Button
-                  type="button"
-                  onClick={nextStep}
-                  disabled={
-                    (currentStep === 0 && !selectedTemplateId) ||
-                    (currentStep === 1 && !formData.name) ||
-                    (currentStep === 3 && !formData.maxMembers)
-                  }
-                >
-                  Continuar
+              <div className="flex gap-4 justify-end ">
+                <Button type="button" variant="outline" onClick={prevStep} disabled={currentStep === 0}>
+                  Voltar
                 </Button>
-              )}
-            </div>
-          </form>
+
+                {currentStep === formSteps.length - 1 ? (
+                  <Button type="submit">Criar Assinatura</Button>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={nextStep}
+                    disabled={
+                      (currentStep === 0 && !form.watch("templateId")) ||
+                      (currentStep === 1 && !form.watch("name")) ||
+                      (currentStep === 3 && !form.watch("maxMembers"))
+                    }
+                  >
+                    Continuar
+                  </Button>
+                )}
+              </div>
+            </form>
+          </Form>
         </div>
       </div>
     </div>
@@ -189,9 +194,8 @@ export default function NovaAssinatura() {
 }
 
 const NovaAssinaturaFormField = (props: {
+  form: ReturnType<typeof useForm<FormValues>>
   currentStep: number
-  selectedTemplateId: string | null
-  formData: { name: string; description: string; maxMembers: string; price: string }
   handleTemplateSelect: (
     template: {
       id: string
@@ -201,7 +205,6 @@ const NovaAssinaturaFormField = (props: {
       recommendedPriceInCents: number
     } | null
   ) => void
-  updateFormData: (field: string, value: string) => void
 }) => {
   const currentField = formSteps[props.currentStep]
 
@@ -245,57 +248,57 @@ const NovaAssinaturaFormField = (props: {
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15 }}>
         {currentField.id === "template" && (
-          <TemplateSelect value={props.selectedTemplateId} onSelect={props.handleTemplateSelect} />
+          <FormField
+            control={props.form.control}
+            name="templateId"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <TemplateSelect value={field.value} onSelect={props.handleTemplateSelect} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         )}
 
         {currentField.id === "name" && (
-          <Input
-            id="name"
+          <ControlledInput
             name="name"
-            value={props.formData.name}
-            onChange={(e) => props.updateFormData("name", e.target.value)}
+            control={props.form.control}
             placeholder="Ex: Curso de Culinária, Tv por assinatura, etc."
-            required
           />
         )}
 
         {currentField.id === "description" && (
-          <Input
-            id="description"
+          <ControlledInput
             name="description"
-            value={props.formData.description}
-            onChange={(e) => props.updateFormData("description", e.target.value)}
+            control={props.form.control}
             placeholder="Digite uma descrição (opcional)"
           />
         )}
 
         {currentField.id === "maxMembers" && (
-          <Input
-            id="maxMembers"
+          <ControlledInput
             name="maxMembers"
+            control={props.form.control}
             type="number"
-            min="1"
-            value={props.formData.maxMembers}
-            onChange={(e) => props.updateFormData("maxMembers", e.target.value)}
+            min={1}
             placeholder="Digite o número máximo de membros"
-            required
           />
         )}
 
         {currentField.id === "price" && (
-          <NumericFormat
-            id="price"
+          <ControlledInput
             name="price"
-            value={props.formData.price}
-            onValueChange={(values) => props.updateFormData("price", values.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            control={props.form.control}
+            numeric
             thousandSeparator="."
             decimalSeparator=","
             prefix="R$ "
             decimalScale={2}
             fixedDecimalScale
             placeholder="Digite o preço da assinatura"
-            required
           />
         )}
       </motion.div>
@@ -303,20 +306,17 @@ const NovaAssinaturaFormField = (props: {
   )
 }
 
-const NovaAssinaturaProgressBar = (props: { currentStep: number }) => {
+const NovaAssinaturaProgressBar = ({ currentStep }: { currentStep: number }) => {
+  const progress = ((currentStep + 1) / formSteps.length) * 100
+
   return (
-    <div className="mb-8">
-      <div className="h-2 bg-muted rounded-full">
-        <motion.div
-          className="h-full bg-primary rounded-full"
-          initial={{ width: "0%" }}
-          animate={{ width: `${((props.currentStep + 1) / formSteps.length) * 100}%` }}
-          transition={{ duration: 0.3 }}
-        />
-      </div>
-      <div className="mt-2 text-sm text-muted-foreground text-end">
-        Passo {props.currentStep + 1} de {formSteps.length}
-      </div>
+    <div className="w-full bg-muted h-1 rounded-full overflow-hidden">
+      <motion.div
+        className="h-full bg-primary"
+        initial={{ width: 0 }}
+        animate={{ width: `${progress}%` }}
+        transition={{ duration: 0.3 }}
+      />
     </div>
   )
 }

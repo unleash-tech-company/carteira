@@ -3,7 +3,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useSubscriptionTemplates } from "@/hooks/use-subscription-templates"
 import { cn } from "@/lib/utils"
-import { Check, ChevronsUpDown } from "lucide-react"
+import { Check, ChevronsUpDown, Loader2 } from "lucide-react"
 import { useState } from "react"
 
 interface TemplateSelectProps {
@@ -35,7 +35,16 @@ export function TemplateSelect({ onSelect, value }: TemplateSelectProps) {
           className="w-full justify-between"
           disabled={isLoading}
         >
-          {value && selectedTemplate ? selectedTemplate.name : "Selecione um template..."}
+          {isLoading ? (
+            <div className="flex items-center gap-2">
+              Selecione um template...
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </div>
+          ) : value && selectedTemplate ? (
+            selectedTemplate.name
+          ) : (
+            "Selecione um template..."
+          )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
