@@ -1,9 +1,11 @@
 import { SuccessScreen } from "@/components/subscription/success-screen"
 import { TemplateSelect } from "@/components/subscription/template-select"
+import { TypeSelect } from "@/components/subscription/type-select"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form"
 import { ControlledInput } from "@/components/ui/form/controlled-input"
 import { TypographyH2 } from "@/components/ui/typography"
+import type { SubscriptionTemplate } from "@/db/drizzle-schema"
 import type { Schema } from "@/db/schema"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useZero } from "@rocicorp/zero/react"
@@ -17,6 +19,7 @@ import * as z from "zod"
 
 const formSchema = z.object({
   templateId: z.string().nullable(),
+  type: z.string().min(1, "O tipo da assinatura é obrigatório"),
   name: z.string().min(1, "O nome da assinatura é obrigatório"),
   description: z.string().optional(),
   maxMembers: z.string().min(1, "O número máximo de membros é obrigatório"),
@@ -30,6 +33,11 @@ const formSteps = [
     id: "template",
     title: "Tipo de Assinatura",
     subtitle: "Selecione um tipo de assinatura ou crie uma personalizada",
+  },
+  {
+    id: "type",
+    title: "Categoria",
+    subtitle: "Selecione a categoria da sua assinatura",
   },
   {
     id: "name",
@@ -64,36 +72,13 @@ export default function NovaAssinatura() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       templateId: null,
+      type: "",
       name: "",
       description: "",
       maxMembers: "",
       price: "",
     },
   })
-
-  const handleTemplateSelect = (
-    template: {
-      id: string
-      name: string
-      description: string | null
-      recommendedMaxMembers: number
-      recommendedPriceInCents: number
-    } | null
-  ) => {
-    if (template) {
-      form.setValue("templateId", template.id)
-      form.setValue("name", template.name)
-      form.setValue("description", template.description ?? "")
-      form.setValue("maxMembers", template.recommendedMaxMembers.toString())
-      form.setValue("price", (template.recommendedPriceInCents / 100).toFixed(2))
-    } else {
-      form.setValue("templateId", null)
-      form.setValue("name", "")
-      form.setValue("description", "")
-      form.setValue("maxMembers", "")
-      form.setValue("price", "")
-    }
-  }
 
   const nextStep = () => {
     if (currentStep < formSteps.length - 1) {
@@ -118,7 +103,7 @@ export default function NovaAssinatura() {
         templateId: values.templateId,
         name: values.name,
         description: values.description,
-        type: "private",
+        type: values.type,
         maxMembers: Number(values.maxMembers),
         princeInCents: numericPrice * 100,
         renewalDate: new Date().getTime(),
@@ -148,6 +133,8 @@ export default function NovaAssinatura() {
     )
   }
 
+  console.log(form.watch("templateId"), form.watch("name"), form.watch("maxMembers"))
+
   return (
     <div className="min-h-screen flex flex-col">
       <div className="container py-8 flex-1 flex items-center justify-center">
@@ -156,11 +143,7 @@ export default function NovaAssinatura() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="relative overflow-hidden min-h-[200px]">
                 <AnimatePresence initial={false} mode="wait" custom={currentStep}>
-                  <NovaAssinaturaFormField
-                    form={form}
-                    currentStep={currentStep}
-                    handleTemplateSelect={handleTemplateSelect}
-                  />
+                  <NovaAssinaturaFormField form={form} currentStep={currentStep} />
                 </AnimatePresence>
               </div>
 
@@ -177,8 +160,9 @@ export default function NovaAssinatura() {
                     onClick={nextStep}
                     disabled={
                       (currentStep === 0 && !form.watch("templateId")) ||
-                      (currentStep === 1 && !form.watch("name")) ||
-                      (currentStep === 3 && !form.watch("maxMembers"))
+                      (currentStep === 1 && !form.watch("type")) ||
+                      (currentStep === 2 && !form.watch("name")) ||
+                      (currentStep === 4 && !form.watch("maxMembers"))
                     }
                   >
                     Continuar
@@ -193,20 +177,9 @@ export default function NovaAssinatura() {
   )
 }
 
-const NovaAssinaturaFormField = (props: {
-  form: ReturnType<typeof useForm<FormValues>>
-  currentStep: number
-  handleTemplateSelect: (
-    template: {
-      id: string
-      name: string
-      description: string | null
-      recommendedMaxMembers: number
-      recommendedPriceInCents: number
-    } | null
-  ) => void
-}) => {
+const NovaAssinaturaFormField = (props: { form: ReturnType<typeof useForm<FormValues>>; currentStep: number }) => {
   const currentField = formSteps[props.currentStep]
+  const form = props.form
 
   const slideVariants = {
     enter: (direction: number) => ({
@@ -218,6 +191,27 @@ const NovaAssinaturaFormField = (props: {
       x: 0,
       opacity: 1,
     },
+  }
+
+  const handleTemplateSelect = (
+    template: Pick<
+      SubscriptionTemplate,
+      "id" | "name" | "description" | "recommendedMaxMembers" | "recommendedPriceInCents"
+    > | null
+  ) => {
+    if (!template) {
+      form.setValue("templateId", null)
+      form.setValue("name", "")
+      form.setValue("description", "")
+      form.setValue("maxMembers", "")
+      form.setValue("price", "")
+      return
+    }
+    form.setValue("templateId", template.id)
+    form.setValue("name", template.name)
+    form.setValue("description", template.description ?? "")
+    form.setValue("maxMembers", template.recommendedMaxMembers.toString())
+    form.setValue("price", (template.recommendedPriceInCents / 100).toFixed(2))
   }
 
   return (
@@ -254,7 +248,22 @@ const NovaAssinaturaFormField = (props: {
             render={({ field }) => (
               <FormItem>
                 <FormControl>
-                  <TemplateSelect value={field.value} onSelect={props.handleTemplateSelect} />
+                  <TemplateSelect value={field.value} onSelect={handleTemplateSelect} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {currentField.id === "type" && (
+          <FormField
+            control={props.form.control}
+            name="type"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <TypeSelect value={field.value} onSelect={(value) => field.onChange(value)} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

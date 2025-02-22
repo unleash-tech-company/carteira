@@ -18,10 +18,10 @@ export const schema = createZeroSchema(drizzleSchema, {
       createdAt: true,
       updatedAt: true,
       status: true,
-      deletedAt: true,
     },
     subscriptionTemplate: {
       id: true,
+      approved: true,
       name: true,
       description: true,
       type: true,
@@ -105,7 +105,10 @@ export const permissions = definePermissions<AuthData, Schema>(schema, () => {
       row: {
         select: [allowTemplateSelect],
         insert: [denyTemplateModification],
-        update: [denyTemplateModification],
+        update: {
+          postMutation: [denyTemplateModification],
+          putMutation: [denyTemplateModification],
+        },
         delete: [denyTemplateModification],
       },
     },

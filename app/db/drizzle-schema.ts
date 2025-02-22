@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm"
-import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import { boolean, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core"
 import { createSelectSchema } from "drizzle-zod"
 
 export const user = pgTable("user", {
@@ -11,17 +11,20 @@ export const subscriptionTemplate = pgTable("subscription_template", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  type: text("type", { enum: ["private", "public"] })
-    .notNull()
-    .default("private"),
+  /**
+   * Something like "Games", "Streaming", "Music", "Movies", "Books", "Podcasts"
+   */
+  type: text("type").notNull().default("private"),
   recommendedMaxMembers: integer("recommended_max_members").notNull(),
   recommendedPriceInCents: integer("recommended_price_in_cents").notNull(),
   category: text("category").notNull(), // e.g., "streaming", "music", "games"
   provider: text("provider").notNull(), // e.g., "Netflix", "HBO", "Spotify"
   planName: text("plan_name"), // e.g., "Premium", "Basic", "Family"
+  approved: boolean("approved").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
+export type SubscriptionTemplate = typeof subscriptionTemplate.$inferSelect
 
 export const subscription = pgTable("subscription", {
   id: text("id").primaryKey(),
