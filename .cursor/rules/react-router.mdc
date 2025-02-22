@@ -1,6 +1,6 @@
 ---
 description: 
-globs: /app/routes
+globs: app/routes
 ---
 1. Estrutura e Configuração das Rotas
 	•	Arquivo root.tsx:

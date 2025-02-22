@@ -95,8 +95,8 @@ export function SuccessScreen({ subscriptionName, subscriptionId, name, onBackTo
 
           <div className="mt-8 text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">
             <p className="mb-2">
-              <span className="font-medium">Importante:</span> Esta assinatura foi criada como privada e só pode ser
-              encontrada através do link de convite.
+              <span className="font-medium">Importante:</span> Esta assinatura não está pública e só pode ser encontrada
+              através do link de convite.
             </p>
             <p>
               Você sempre poderá acessar e compartilhar o link de convite posteriormente através da página da

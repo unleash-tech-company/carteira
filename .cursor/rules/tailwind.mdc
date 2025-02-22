@@ -1,6 +1,6 @@
 ---
 description: Diretrizes para uso do Tailwind CSS e Tipografia
-globs: src/**/*.tsx
+globs: app**/*.tsx
 ---
 # Diretrizes de Estilização com Tailwind CSS
 

@@ -14,7 +14,7 @@ export const schema = createZeroSchema(drizzleSchema, {
       type: true,
       maxMembers: true,
       princeInCents: true,
-      renewalDate: true,
+      renewalDay: true,
       createdAt: true,
       updatedAt: true,
       status: true,

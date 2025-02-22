@@ -1,12 +1,11 @@
-import { FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form"
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import type { ComponentProps } from "react"
-import type { Control } from "react-hook-form"
+import { useFormContext } from "react-hook-form"
 import { NumericFormat } from "react-number-format"
 
 type BaseProps = {
   name: string
-  control: Control<any>
   label?: string
 }
 
@@ -15,13 +14,16 @@ type NumericFormatProps = ComponentProps<typeof NumericFormat>
 
 type ControlledInputProps = BaseProps & (({ numeric?: false } & InputProps) | ({ numeric: true } & NumericFormatProps))
 
-export function ControlledInput({ name, control, label, numeric, ...props }: ControlledInputProps) {
+export function ControlledInput({ name, label, numeric, ...props }: ControlledInputProps) {
+  const { control } = useFormContext()
+
   return (
     <FormField
       control={control}
       name={name}
       render={({ field }) => (
         <FormItem>
+          {label && <FormLabel>{label}</FormLabel>}
           <FormControl>
             {numeric ? (
               <NumericFormat

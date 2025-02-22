@@ -1,6 +1,6 @@
 ---
 description: Diretrizes para organização de páginas e componentes
-globs: src/app/**/*.tsx
+globs: app/**/*.tsx
 ---
 # Diretrizes para Organização de Páginas e Componentes
 

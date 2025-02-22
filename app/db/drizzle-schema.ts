@@ -38,7 +38,7 @@ export const subscription = pgTable("subscription", {
     .default("private"),
   maxMembers: integer("max_members").notNull(),
   princeInCents: integer("prince_in_cents").notNull(),
-  renewalDate: timestamp("renewal_date").notNull(),
+  renewalDay: integer("renewal_day").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   status: text("status").notNull().default("active"),
