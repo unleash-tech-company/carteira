@@ -1,4 +1,5 @@
 import type { Schema } from "@/db/schema"
+import { TODO } from "@/lib/utils"
 import type { FormNewSubscription } from "@/routes/_a.app_.subscriptions.new"
 import type { Zero } from "@rocicorp/zero"
 import { toast } from "sonner"
@@ -6,6 +7,7 @@ import { v4 as uuidv4 } from "uuid"
 
 export async function createSubscription(z: Zero<Schema>, values: FormNewSubscription) {
   const totalPriceInCents = Number(values.price.replace(/\D/g, ""))
+  TODO("Tem que criar o template")
   const dueDay = parseInt(values.dueDate)
   try {
     const uuid = uuidv4()

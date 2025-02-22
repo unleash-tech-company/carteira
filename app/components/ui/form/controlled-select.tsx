@@ -3,7 +3,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { Check, ChevronsUpDown } from "lucide-react"
+import { Check, ChevronsUpDown, Plus } from "lucide-react"
 import { useState } from "react"
 import { useFormContext } from "react-hook-form"
 
@@ -23,6 +23,8 @@ type BaseProps<T> = {
   emptyMessage?: string
   onSearch?: (value: string) => void
   onSelect?: (value: T) => void
+  onCreate?: (value: string) => SelectOption<T>
+  createOptionLabel?: (value: string) => string
   disabled?: boolean
   required?: boolean
 }
@@ -37,16 +39,41 @@ export function ControlledSelect<T>({
   eq,
   emptyMessage = "Nenhuma opção encontrada.",
   onSearch,
+  onCreate,
+  createOptionLabel = (value) => `Criar "${value}"`,
   disabled,
   required = false,
 }: BaseProps<T>) {
-  const { control } = useFormContext()
+  const { control, setValue } = useFormContext()
+  const [selectedOption, setSelectedOption] = useState<SelectOption<T> | null>(null)
   const [open, setOpen] = useState(false)
   const [inputValue, setInputValue] = useState("")
 
   const handleInputChange = (value: string) => {
     setInputValue(value)
     onSearch?.(value)
+  }
+
+  const showCreateOption =
+    // has crete function
+    onCreate &&
+    // has input value
+    inputValue &&
+    // not in options
+    !options.some((option) => option.label.toLowerCase() === inputValue.toLowerCase())
+
+  const handleCreate = () => {
+    if (!onCreate || !inputValue) return
+
+    const newValue = onCreate(inputValue)
+    handleSelect(newValue)
+  }
+
+  const handleSelect = (value: SelectOption<T>) => {
+    setSelectedOption(value)
+    setValue(name, value.value)
+    setOpen(false)
+    onSelect?.(value.value)
   }
 
   return (
@@ -61,8 +88,6 @@ export function ControlledSelect<T>({
         },
       }}
       render={({ field }) => {
-        const selectedOption = options.find((option) => eq(option.value, field.value))
-
         return (
           <FormItem>
             {label && <FormLabel>{label}</FormLabel>}
@@ -76,7 +101,7 @@ export function ControlledSelect<T>({
                     className="w-full justify-between"
                     disabled={disabled}
                   >
-                    {selectedOption ? selectedOption.label : placeholder}
+                    {selectedOption?.label ?? field.value?.label ?? placeholder}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -88,17 +113,29 @@ export function ControlledSelect<T>({
                       onValueChange={handleInputChange}
                     />
                     <CommandList>
-                      <CommandEmpty>{emptyMessage}</CommandEmpty>
+                      <CommandEmpty>
+                        {showCreateOption ? (
+                          <button
+                            type="button"
+                            className="relative flex w-full cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-3 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hover:bg-accent hover:text-accent-foreground"
+                            onClick={handleCreate}
+                          >
+                            <Plus className="h-4 w-4" />
+                            <div className="flex flex-col items-start">
+                              <span>{createOptionLabel(inputValue)}</span>
+                            </div>
+                          </button>
+                        ) : (
+                          emptyMessage
+                        )}
+                      </CommandEmpty>
                       <CommandGroup>
                         {options.map((option) => (
                           <CommandItem
                             key={option.label}
                             value={option.label}
                             onSelect={() => {
-                              console.log("onSelect", option.value)
-                              field.onChange(option.value)
-                              setOpen(false)
-                              onSelect?.(option.value)
+                              handleSelect(option)
                             }}
                           >
                             <Check

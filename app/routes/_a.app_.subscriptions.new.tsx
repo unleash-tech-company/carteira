@@ -2,14 +2,16 @@ import { SuccessScreen } from "@/components/subscription/success-screen"
 import { Button } from "@/components/ui/button"
 import { ControlledInput } from "@/components/ui/form/controlled-input"
 import { ControlledSelect, type SelectOption } from "@/components/ui/form/controlled-select"
+import { ControlledToggleGroup, type ToggleOption } from "@/components/ui/form/controlled-toggle-group"
 import { TypographyH2 } from "@/components/ui/typography"
 import type { Schema, SubscriptionTemplate } from "@/db/schema"
 import { useSubscriptionTemplates } from "@/hooks/use-subscription-templates"
 import { createSubscription } from "@/service/subscriptions"
+import { DevTool } from "@hookform/devtools"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useZero } from "@rocicorp/zero/react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Users } from "lucide-react"
+import { KeyRound, Link, Users } from "lucide-react"
 import { useState } from "react"
 import { FormProvider, useForm, useFormContext } from "react-hook-form"
 import { useNavigate } from "react-router"
@@ -17,21 +19,37 @@ import { toast } from "sonner"
 import { match } from "ts-pattern"
 import * as z from "zod"
 
-const newSubscriptionForm = z.object({
-  templateId: z.string().nullable(),
-  name: z.string().min(1, "O nome da assinatura é obrigatório"),
-  description: z.string().optional(),
-  maxMembers: z.string().min(1, "O número máximo de membros é obrigatório"),
-  price: z.string().min(1, "O preço da assinatura é obrigatório"),
-  dueDate: z
-    .string()
-    .min(1, "O dia de vencimento é obrigatório")
-    .default("5")
-    .refine((val) => {
-      const num = parseInt(val)
-      return num >= 1 && num <= 31
-    }, "O dia de vencimento deve estar entre 1 e 31"),
-})
+const newSubscriptionForm = z
+  .object({
+    templateId: z.string().nullable(),
+    name: z.string().min(1, "O nome da assinatura é obrigatório"),
+    description: z.string().optional(),
+    maxMembers: z.string().default("1"),
+    price: z.string(),
+    dueDate: z
+      .string()
+      .min(1, "O dia de vencimento é obrigatório")
+      .default("5")
+      .refine((val) => {
+        const num = parseInt(val)
+        return num >= 1 && num <= 31
+      }, "O dia de vencimento deve estar entre 1 e 31"),
+    hasPassword: z.boolean().default(false),
+    password: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.hasPassword) {
+        if (!data.password) return false
+        if (data.password.length < 6) return false
+      }
+      return true
+    },
+    {
+      message: "A senha deve ter pelo menos 6 caracteres",
+      path: ["password"],
+    }
+  )
 
 export type FormNewSubscription = z.infer<typeof newSubscriptionForm>
 export default function NovaAssinatura() {
@@ -51,10 +69,13 @@ export default function NovaAssinatura() {
       maxMembers: "",
       price: "",
       dueDate: "5",
+      hasPassword: false,
+      password: undefined,
     },
   })
 
   const nextStep = (values: FormNewSubscription) => {
+    console.log(values)
     const config = formStepConfig[currentStep]
     if (config.nextStep) {
       const nextStep = config.nextStep(selectedTemplateIsApproved)
@@ -75,7 +96,10 @@ export default function NovaAssinatura() {
 
   async function onSubmit(values: FormNewSubscription) {
     try {
-      const uuid = await createSubscription(z, values)
+      const uuid = await createSubscription(z, {
+        ...values,
+        password: values.hasPassword ? values.password : undefined,
+      })
       if (!uuid) {
         throw new Error("Erro ao criar assinatura")
       }
@@ -146,6 +170,7 @@ export default function NovaAssinatura() {
                       ))
                       .with(FormStep.CUSTOM_DETAILS, () => <CustomDetailsStep />)
                       .with(FormStep.PAYMENT_DETAILS, () => <PaymentDetailsStep />)
+                      .with(FormStep.PASSWORD, () => <PasswordStep />)
                       .exhaustive()}
                   </motion.div>
                 </motion.div>
@@ -161,12 +186,13 @@ export default function NovaAssinatura() {
                 Voltar
               </Button>
 
-              <Button type="button" onClick={methods.handleSubmit(nextStep, console.log)}>
+              <Button type="button" onClick={methods.handleSubmit(nextStep, (...event) => console.log(event))}>
                 {match(currentStep)
-                  .with(FormStep.PAYMENT_DETAILS, () => "Criar Assinatura")
+                  .with(FormStep.PASSWORD, () => "Criar Assinatura")
                   .otherwise(() => "Continuar")}
               </Button>
             </div>
+            <DevTool control={methods.control} />
           </FormProvider>
         </div>
       </div>
@@ -178,6 +204,7 @@ enum FormStep {
   SELECT_TEMPLATE = "SELECT_TEMPLATE",
   CUSTOM_DETAILS = "CUSTOM_DETAILS",
   PAYMENT_DETAILS = "PAYMENT_DETAILS",
+  PASSWORD = "PASSWORD",
 }
 
 type StepConfig = {
@@ -203,8 +230,14 @@ const formStepConfig: Record<FormStep, StepConfig> = {
   [FormStep.PAYMENT_DETAILS]: {
     title: "Detalhes do Pagamento",
     subtitle: "Configure os valores e a data de vencimento",
-    nextStep: null,
+    nextStep: () => FormStep.PASSWORD,
     prevStep: (isApproved: boolean) => (isApproved ? FormStep.SELECT_TEMPLATE : FormStep.CUSTOM_DETAILS),
+  },
+  [FormStep.PASSWORD]: {
+    title: "Tipo de Acesso",
+    subtitle: "Defina se o serviço requer senha para funcionar",
+    nextStep: null,
+    prevStep: () => FormStep.PAYMENT_DETAILS,
   },
 } as const
 
@@ -228,9 +261,9 @@ function SelectTemplateStep({ setSelectedTemplateIsApproved }: SelectTemplateSte
       const totalPrice = matchedTemplate.recommendedPriceInCents * matchedTemplate.recommendedMaxMembers
       form.setValue("price", (totalPrice / 100).toFixed(2))
       setSelectedTemplateIsApproved(matchedTemplate.approved ?? false)
-    } else if (selectedValue === null) {
-      form.setValue("templateId", `custom-${Date.now()}`)
-      form.setValue("name", inputValue || "")
+    } else if (selectedValue) {
+      form.setValue("templateId", selectedValue.id)
+      form.setValue("name", selectedValue.name)
       form.setValue("description", "")
       form.setValue("maxMembers", "1")
       form.setValue("price", "")
@@ -239,36 +272,52 @@ function SelectTemplateStep({ setSelectedTemplateIsApproved }: SelectTemplateSte
   }
 
   const options: SelectOption<SubscriptionTemplate | null>[] = [
-    ...(templates?.map((template) => ({
-      value: template,
-      label: template.name,
-      description: template.description ?? undefined,
-    })) ?? []),
-    {
-      value: null,
-      label: "Criar assinatura personalizada",
-      description: "Defina suas próprias configurações de assinatura",
-    },
+    ...(
+      templates?.map((template) => ({
+        value: template,
+        label: template.name,
+        description: template.description ?? undefined,
+      })) ?? []
+    ).filter((option) => option.label.toLowerCase().includes(inputValue.toLowerCase())),
   ]
 
-  const filteredOptions = options.filter((option) => option.label.toLowerCase().includes(inputValue.toLowerCase()))
+  const handleCreate = (value: string): SelectOption<SubscriptionTemplate> => {
+    const customTemplate = {
+      id: `custom-${Date.now()}`,
+      name: value,
+      description: "",
+      type: "",
+      category: "",
+      provider: "",
+      planName: "",
+      recommendedMaxMembers: 1,
+      recommendedPriceInCents: 0,
+      approved: false,
+      createdAt: Date.now(),
+      updatedAt: null,
+    }
+
+    return {
+      value: customTemplate,
+      label: customTemplate.name,
+      description: "",
+    }
+  }
 
   return (
     <ControlledSelect
       name="selectedTemplate"
-      options={filteredOptions}
+      options={options}
       onSelect={handleSelect}
       eq={(a, b) => a?.id === b?.id}
       placeholder={isLoading ? "Carregando templates..." : "Selecione um template..."}
       searchPlaceholder="Buscar ou criar template..."
       required
-      emptyMessage={
-        inputValue
-          ? `Criar "${inputValue}"\nPressione enter para criar um template personalizado`
-          : "Nenhum template encontrado."
-      }
+      emptyMessage="Nenhum template encontrado."
       onSearch={setInputValue}
       disabled={isLoading}
+      onCreate={handleCreate}
+      createOptionLabel={(value) => `Criar assinatura "${value}"`}
     />
   )
 }
@@ -347,6 +396,54 @@ function PaymentDetailsStep() {
               )}
             </span>
           </div>
+        </motion.div>
+      )}
+    </div>
+  )
+}
+
+function PasswordStep() {
+  const form = useFormContext<FormNewSubscription>()
+
+  const options: ToggleOption<boolean>[] = [
+    {
+      value: true,
+      label: "Requer senha de acesso",
+      description: "Para serviços que precisam de login, como Netflix, Spotify, etc.",
+      icon: KeyRound,
+    },
+    {
+      value: false,
+      label: "Não requer senha",
+      description: "Para serviços como TV por assinatura, internet, etc.",
+      icon: Link,
+    },
+  ]
+
+  return (
+    <div className="space-y-4">
+      <ControlledToggleGroup
+        name="hasPassword"
+        options={options}
+        onSelect={(value) => {
+          if (!value) {
+            form.setValue("password", undefined)
+          }
+        }}
+      />
+
+      {form.watch("hasPassword") && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+        >
+          <ControlledInput
+            type="password"
+            name="password"
+            label="Senha de acesso"
+            placeholder="Digite a senha do serviço"
+          />
         </motion.div>
       )}
     </div>
