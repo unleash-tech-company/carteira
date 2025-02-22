@@ -1,7 +1,5 @@
-import { type RouteConfig, index, layout, route } from "@react-router/dev/routes"
+import { type RouteConfig } from "@react-router/dev/routes"
+import { flatRoutes } from "@react-router/fs-routes"
 
-export default [
-  index("routes/landing-page/landing-page.tsx"),
-  route("/login", "routes/login.tsx"),
-  layout("./routes/protected-routes.tsx", [route("/app", "routes/protected/_index.tsx")]),
-] satisfies RouteConfig
+// https://reactrouter.com/7.2.0/how-to/file-route-conventions
+export default flatRoutes() satisfies RouteConfig
