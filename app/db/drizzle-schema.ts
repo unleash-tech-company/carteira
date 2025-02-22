@@ -1,11 +1,11 @@
 import { relations } from "drizzle-orm"
-import { integer, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import { createSelectSchema } from "drizzle-zod"
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
 })
-
 export const subscription = pgTable("subscription", {
   id: text("id").primaryKey(),
   ownerId: text("owner_id").notNull(),
@@ -15,12 +15,14 @@ export const subscription = pgTable("subscription", {
     .notNull()
     .default("private"),
   maxMembers: integer("max_members").notNull(),
-  price: numeric("price").notNull(),
+  princeInCents: integer("prince_in_cents").notNull(),
   renewalDate: timestamp("renewal_date").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   status: text("status").notNull().default("active"),
 })
+
+export const subscriptionSchema = createSelectSchema(subscription)
 export type Subscription = typeof subscription.$inferSelect
 export type InsertSubscription = typeof subscription.$inferInsert
 

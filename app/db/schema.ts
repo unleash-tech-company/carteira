@@ -12,11 +12,12 @@ export const schema = createZeroSchema(drizzleSchema, {
       description: true,
       type: true,
       maxMembers: true,
-      price: true,
+      princeInCents: true,
       renewalDate: true,
       createdAt: true,
       updatedAt: true,
       status: true,
+      deletedAt: true,
     },
     subscriptionPassword: {
       subscriptionId: true,

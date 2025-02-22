@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { TypographyH1, TypographyH2, TypographyP } from "@/components/ui/typography"
 import type { Schema } from "@/db/schema"
 import { cn, TODO } from "@/lib/utils"
@@ -28,12 +27,15 @@ export function SubscriptionList() {
     <div className={cn("space-y-4", "p-4")}>
       <div className={cn("flex items-center", "justify-between")}>
         <TypographyH2>Suas Assinaturas</TypographyH2>
-        <Link to="/app/subscriptions/new">Adicionar Assinatura</Link>
+        <Link to="/app/subscriptions/new">
+          <Button variant="outline">Adicionar Assinatura</Button>
+        </Link>
       </div>
       <SubscriptionList.MySubscriptions />
     </div>
   )
 }
+
 SubscriptionList.MySubscriptions = () => {
   const z = useZero<Schema>()
   const { subscriptions, isLoading } = useSubscriptionLists()
@@ -44,30 +46,39 @@ SubscriptionList.MySubscriptions = () => {
   return (
     <>
       {subscriptions.length === 0 ? (
-        <TypographyP>Nenhuma assinatura encontrada.</TypographyP>
+        <div className={cn("flex flex-col items-center justify-center", "p-8 rounded-lg", "bg-muted/50")}>
+          <TypographyP>Nenhuma assinatura encontrada.</TypographyP>
+        </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Proprietário</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {subscriptions.map((subscription) => (
-              <TableRow key={subscription.id}>
-                <TableCell>{subscription.id}</TableCell>
-                <TableCell>{subscription.ownerId}</TableCell>
-                <TableCell className="text-right">
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteSubscription(subscription.id)}>
-                    Deletar
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <div className={cn("grid grid-cols-1 gap-4", "sm:grid-cols-2", "lg:grid-cols-3")}>
+          {subscriptions.map((subscription) => (
+            <div
+              key={subscription.id}
+              className={cn(
+                "flex flex-col",
+                "p-6 space-y-4",
+                "bg-card rounded-lg border",
+                "hover:shadow-md transition-shadow"
+              )}
+            >
+              <div className="space-y-2">
+                <TypographyP className="font-medium">ID da Assinatura</TypographyP>
+                <TypographyP className="text-muted-foreground">{subscription.id}</TypographyP>
+              </div>
+
+              <div className="space-y-2">
+                <TypographyP className="font-medium">Proprietário</TypographyP>
+                <TypographyP className="text-muted-foreground">{subscription.ownerId}</TypographyP>
+              </div>
+
+              <div className={cn("flex justify-end", "pt-4 mt-auto")}>
+                <Button variant="destructive" size="sm" onClick={() => handleDeleteSubscription(subscription.id)}>
+                  Deletar
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </>
   )
