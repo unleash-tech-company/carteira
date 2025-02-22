@@ -3,10 +3,12 @@ import { Input } from "@/components/ui/input"
 import type { ComponentProps } from "react"
 import { useFormContext } from "react-hook-form"
 import { NumericFormat } from "react-number-format"
+import type { ZodOptional, ZodType } from "zod"
 
 type BaseProps = {
   name: string
   label?: string
+  schema: ZodType<string | number> | ZodOptional<ZodType<string | number>>
 }
 
 type InputProps = ComponentProps<typeof Input>
@@ -21,6 +23,18 @@ export function ControlledInput({ name, label, numeric, ...props }: ControlledIn
     <FormField
       control={control}
       name={name}
+      rules={{
+        validate: (value) => {
+          if (props.schema) {
+            const result = props.schema.safeParse(value)
+            if (!result.success) {
+              return result.error.errors[0].message
+            }
+          }
+
+          return true
+        },
+      }}
       render={({ field }) => (
         <FormItem>
           {label && <FormLabel>{label}</FormLabel>}

@@ -3,9 +3,11 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { AnimatePresence, motion } from "framer-motion"
 import { Check, ChevronsUpDown, Plus } from "lucide-react"
 import { useState } from "react"
 import { useFormContext } from "react-hook-form"
+import type { ZodOptional, ZodType } from "zod"
 
 export type SelectOption<T> = {
   value: T
@@ -26,7 +28,7 @@ type BaseProps<T> = {
   onCreate?: (value: string) => SelectOption<T>
   createOptionLabel?: (value: string) => string
   disabled?: boolean
-  required?: boolean
+  schema: ZodType<any> | ZodOptional<ZodType<any>>
 }
 
 export function ControlledSelect<T>({
@@ -42,7 +44,7 @@ export function ControlledSelect<T>({
   onCreate,
   createOptionLabel = (value) => `Criar "${value}"`,
   disabled,
-  required = false,
+  schema,
 }: BaseProps<T>) {
   const { control, setValue } = useFormContext()
   const [selectedOption, setSelectedOption] = useState<SelectOption<T> | null>(null)
@@ -82,9 +84,14 @@ export function ControlledSelect<T>({
       name={name}
       rules={{
         validate: (value) => {
-          if (required && !value) {
-            return "Selecione uma opção"
+          if (schema) {
+            const result = schema.safeParse(value)
+            if (!result.success) {
+              return result.error.errors[0].message
+            }
           }
+
+          return true
         },
       }}
       render={({ field }) => {
@@ -113,7 +120,7 @@ export function ControlledSelect<T>({
                       onValueChange={handleInputChange}
                     />
                     <CommandList>
-                      <CommandEmpty>
+                      <CommandEmpty className="pt-2">
                         {showCreateOption ? (
                           <button
                             type="button"
@@ -158,7 +165,15 @@ export function ControlledSelect<T>({
                 </PopoverContent>
               </Popover>
             </FormControl>
-            <FormMessage />
+            <AnimatePresence mode="wait">
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+              >
+                <FormMessage />
+              </motion.div>
+            </AnimatePresence>
           </FormItem>
         )
       }}

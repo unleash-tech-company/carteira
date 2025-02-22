@@ -7,8 +7,6 @@ import { TypographyH2 } from "@/components/ui/typography"
 import type { Schema, SubscriptionTemplate } from "@/db/schema"
 import { useSubscriptionTemplates } from "@/hooks/use-subscription-templates"
 import { createSubscription } from "@/service/subscriptions"
-import { DevTool } from "@hookform/devtools"
-import { zodResolver } from "@hookform/resolvers/zod"
 import { useZero } from "@rocicorp/zero/react"
 import { AnimatePresence, motion } from "framer-motion"
 import { KeyRound, Link, Users } from "lucide-react"
@@ -19,39 +17,16 @@ import { toast } from "sonner"
 import { match } from "ts-pattern"
 import * as z from "zod"
 
-const newSubscriptionForm = z
-  .object({
-    templateId: z.string().nullable(),
-    name: z.string().min(1, "O nome da assinatura é obrigatório"),
-    description: z.string().optional(),
-    maxMembers: z.string().default("1"),
-    price: z.string(),
-    dueDate: z
-      .string()
-      .min(1, "O dia de vencimento é obrigatório")
-      .default("5")
-      .refine((val) => {
-        const num = parseInt(val)
-        return num >= 1 && num <= 31
-      }, "O dia de vencimento deve estar entre 1 e 31"),
-    hasPassword: z.boolean().default(false),
-    password: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      if (data.hasPassword) {
-        if (!data.password) return false
-        if (data.password.length < 6) return false
-      }
-      return true
-    },
-    {
-      message: "A senha deve ter pelo menos 6 caracteres",
-      path: ["password"],
-    }
-  )
-
-export type FormNewSubscription = z.infer<typeof newSubscriptionForm>
+export type FormNewSubscription = {
+  templateId: string | null
+  name: string
+  description: string
+  maxMembers: string
+  price: string
+  dueDate: string
+  hasPassword: boolean
+  password?: string
+}
 export default function NovaAssinatura() {
   const navigate = useNavigate()
   const z = useZero<Schema>()
@@ -61,7 +36,6 @@ export default function NovaAssinatura() {
   const [selectedTemplateIsApproved, setSelectedTemplateIsApproved] = useState(false)
 
   const methods = useForm<FormNewSubscription>({
-    resolver: zodResolver(newSubscriptionForm),
     defaultValues: {
       templateId: null,
       name: "",
@@ -69,13 +43,12 @@ export default function NovaAssinatura() {
       maxMembers: "",
       price: "",
       dueDate: "5",
-      hasPassword: false,
-      password: undefined,
+      hasPassword: true,
+      password: "",
     },
   })
 
   const nextStep = (values: FormNewSubscription) => {
-    console.log(values)
     const config = formStepConfig[currentStep]
     if (config.nextStep) {
       const nextStep = config.nextStep(selectedTemplateIsApproved)
@@ -186,13 +159,12 @@ export default function NovaAssinatura() {
                 Voltar
               </Button>
 
-              <Button type="button" onClick={methods.handleSubmit(nextStep, (...event) => console.log(event))}>
+              <Button type="button" onClick={methods.handleSubmit(nextStep)}>
                 {match(currentStep)
                   .with(FormStep.PASSWORD, () => "Criar Assinatura")
                   .otherwise(() => "Continuar")}
               </Button>
             </div>
-            <DevTool control={methods.control} />
           </FormProvider>
         </div>
       </div>
@@ -282,7 +254,7 @@ function SelectTemplateStep({ setSelectedTemplateIsApproved }: SelectTemplateSte
   ]
 
   const handleCreate = (value: string): SelectOption<SubscriptionTemplate> => {
-    const customTemplate = {
+    const customTemplate: SubscriptionTemplate = {
       id: `custom-${Date.now()}`,
       name: value,
       description: "",
@@ -312,12 +284,15 @@ function SelectTemplateStep({ setSelectedTemplateIsApproved }: SelectTemplateSte
       eq={(a, b) => a?.id === b?.id}
       placeholder={isLoading ? "Carregando templates..." : "Selecione um template..."}
       searchPlaceholder="Buscar ou criar template..."
-      required
+      schema={z.object({
+        id: z.string(),
+        name: z.string().min(1, "O nome do template é obrigatório"),
+      })}
       emptyMessage="Nenhum template encontrado."
       onSearch={setInputValue}
       disabled={isLoading}
       onCreate={handleCreate}
-      createOptionLabel={(value) => `Criar assinatura "${value}"`}
+      createOptionLabel={(value) => `Criar "${value}"`}
     />
   )
 }
@@ -329,11 +304,17 @@ function CustomDetailsStep() {
     <div className="space-y-4">
       <ControlledInput
         name="name"
+        schema={z.string().min(1, "O nome da assinatura é obrigatório")}
         placeholder="Ex: Curso de Culinária, Tv por assinatura, etc."
         label="Nome da assinatura"
       />
 
-      <ControlledInput name="description" placeholder="Digite uma descrição (opcional)" label="Descrição" />
+      <ControlledInput
+        name="description"
+        schema={z.string().optional()}
+        placeholder="Digite uma descrição (opcional)"
+        label="Descrição"
+      />
     </div>
   )
 }
@@ -346,6 +327,7 @@ function PaymentDetailsStep() {
       <div className="grid grid-cols-2 gap-4">
         <ControlledInput
           name="maxMembers"
+          schema={z.coerce.number().min(1, "A quantidade de pessoas é obrigatória")}
           type="number"
           min={1}
           placeholder="Quantidade de pessoas"
@@ -359,6 +341,7 @@ function PaymentDetailsStep() {
           decimalSeparator=","
           prefix="R$ "
           decimalScale={2}
+          schema={z.string().min(1, "O preço da assinatura é obrigatório")}
           fixedDecimalScale
           placeholder="Valor total da assinatura"
           label="Valor total da assinatura"
@@ -367,6 +350,10 @@ function PaymentDetailsStep() {
 
       <ControlledInput
         name="dueDate"
+        schema={z.coerce
+          .number()
+          .min(1, "O dia de vencimento é obrigatório")
+          .max(31, "O dia de vencimento deve estar entre 1 e 31")}
         type="number"
         min={1}
         max={31}
@@ -423,6 +410,7 @@ function PasswordStep() {
   return (
     <div className="space-y-4">
       <ControlledToggleGroup
+        schema={z.boolean()}
         name="hasPassword"
         options={options}
         onSelect={(value) => {
@@ -439,6 +427,7 @@ function PasswordStep() {
           exit={{ opacity: 0, height: 0 }}
         >
           <ControlledInput
+            schema={z.string().refine((value) => value.length >= 1, "A senha é obrigatória")}
             type="password"
             name="password"
             label="Senha de acesso"

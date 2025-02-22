@@ -1,7 +1,9 @@
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
+import type { ZodOptional } from "node_modules/zod/lib/types"
 import { useFormContext } from "react-hook-form"
+import type { ZodType } from "zod"
 
 export type ToggleOption<T> = {
   value: T
@@ -16,7 +18,7 @@ type BaseProps<T> = {
   options: ToggleOption<T>[]
   eq?: (a: T, b: T) => boolean
   onSelect?: (value: T) => void
-  required?: boolean
+  schema: ZodType<T> | ZodOptional<ZodType<T>>
 }
 
 export function ControlledToggleGroup<T>({
@@ -24,8 +26,9 @@ export function ControlledToggleGroup<T>({
   label,
   options,
   eq = (a, b) => a === b,
+
   onSelect,
-  required = false,
+  schema,
 }: BaseProps<T>) {
   const { control } = useFormContext()
 
@@ -35,9 +38,14 @@ export function ControlledToggleGroup<T>({
       name={name}
       rules={{
         validate: (value) => {
-          if (required && !value) {
-            return "Selecione uma opção"
+          if (schema) {
+            const result = schema.safeParse(value)
+            if (!result.success) {
+              return result.error.errors[0].message
+            }
           }
+
+          return true
         },
       }}
       render={({ field }) => (
