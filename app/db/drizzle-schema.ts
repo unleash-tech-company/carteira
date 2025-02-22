@@ -6,9 +6,27 @@ export const user = pgTable("user", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
 })
+
+export const subscriptionTemplate = pgTable("subscription_template", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type", { enum: ["private", "public"] })
+    .notNull()
+    .default("private"),
+  recommendedMaxMembers: integer("recommended_max_members").notNull(),
+  recommendedPriceInCents: integer("recommended_price_in_cents").notNull(),
+  category: text("category").notNull(), // e.g., "streaming", "music", "games"
+  provider: text("provider").notNull(), // e.g., "Netflix", "HBO", "Spotify"
+  planName: text("plan_name"), // e.g., "Premium", "Basic", "Family"
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
+
 export const subscription = pgTable("subscription", {
   id: text("id").primaryKey(),
   ownerId: text("owner_id").notNull(),
+  templateId: text("template_id").references(() => subscriptionTemplate.id),
   name: text("name").notNull(),
   description: text("description"),
   type: text("type", { enum: ["private", "public"] })
@@ -52,4 +70,12 @@ export const subscriptionRelations = relations(subscription, ({ one }) => ({
     fields: [subscription.id],
     references: [subscriptionPassword.subscriptionId],
   }),
+  template: one(subscriptionTemplate, {
+    fields: [subscription.templateId],
+    references: [subscriptionTemplate.id],
+  }),
+}))
+
+export const subscriptionTemplateRelations = relations(subscriptionTemplate, ({ many }) => ({
+  subscriptions: many(subscription),
 }))

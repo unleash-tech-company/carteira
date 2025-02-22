@@ -8,6 +8,7 @@ export const schema = createZeroSchema(drizzleSchema, {
     subscription: {
       id: true,
       ownerId: true,
+      templateId: true,
       name: true,
       description: true,
       type: true,
@@ -18,6 +19,19 @@ export const schema = createZeroSchema(drizzleSchema, {
       updatedAt: true,
       status: true,
       deletedAt: true,
+    },
+    subscriptionTemplate: {
+      id: true,
+      name: true,
+      description: true,
+      type: true,
+      recommendedMaxMembers: true,
+      recommendedPriceInCents: true,
+      category: true,
+      provider: true,
+      planName: true,
+      createdAt: true,
+      updatedAt: true,
     },
     subscriptionPassword: {
       subscriptionId: true,
@@ -70,6 +84,10 @@ export const permissions = definePermissions<AuthData, Schema>(schema, () => {
     cmp("ownerId", "=", authData.sub ?? "")
   const allowIfIsInWhitelist = (authData: AuthData, { exists }: ExpressionBuilder<Schema, "subscription">) =>
     exists("allowedUsers", (q) => q.where((q) => q.cmp("id", "=", authData.sub || "")))
+  const allowTemplateSelect = (_authData: AuthData, { cmp }: ExpressionBuilder<Schema, "subscriptionTemplate">) =>
+    cmp("id", "!=", "")
+  const denyTemplateModification = (_authData: AuthData, { cmp }: ExpressionBuilder<Schema, "subscriptionTemplate">) =>
+    cmp("id", "=", "")
 
   return {
     subscription: {
@@ -81,6 +99,14 @@ export const permissions = definePermissions<AuthData, Schema>(schema, () => {
         },
         select: [allowIfSubscriptionOwner, allowIfIsInWhitelist],
         insert: [allowIfSubscriptionOwner],
+      },
+    },
+    subscriptionTemplate: {
+      row: {
+        select: [allowTemplateSelect],
+        insert: [denyTemplateModification],
+        update: [denyTemplateModification],
+        delete: [denyTemplateModification],
       },
     },
   }

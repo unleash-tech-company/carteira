@@ -1,4 +1,5 @@
 import { SuccessScreen } from "@/components/subscription/success-screen"
+import { TemplateSelect } from "@/components/subscription/template-select"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { TypographyH2 } from "@/components/ui/typography"
@@ -7,10 +8,15 @@ import { useZero } from "@rocicorp/zero/react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useState } from "react"
 import { NumericFormat } from "react-number-format"
-import { isRouteErrorResponse, useNavigate, useRouteError } from "react-router"
+import { useNavigate } from "react-router"
 import { v4 as uuidv4 } from "uuid"
 
 const formSteps = [
+  {
+    id: "template",
+    title: "Tipo de Assinatura",
+    subtitle: "Selecione um tipo de assinatura ou crie uma personalizada",
+  },
   {
     id: "name",
     title: "Nome da Assinatura",
@@ -39,6 +45,7 @@ export default function NovaAssinatura() {
   const [currentStep, setCurrentStep] = useState(0)
   const [showSuccess, setShowSuccess] = useState(false)
   const [subscriptionId, setSubscriptionId] = useState("")
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -48,6 +55,33 @@ export default function NovaAssinatura() {
 
   const updateFormData = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleTemplateSelect = (
+    template: {
+      id: string
+      name: string
+      description: string | null
+      recommendedMaxMembers: number
+      recommendedPriceInCents: number
+    } | null
+  ) => {
+    setSelectedTemplateId(template?.id ?? null)
+    if (template) {
+      setFormData({
+        name: template.name,
+        description: template.description ?? "",
+        maxMembers: template.recommendedMaxMembers.toString(),
+        price: (template.recommendedPriceInCents / 100).toFixed(2),
+      })
+    } else {
+      setFormData({
+        name: "",
+        description: "",
+        maxMembers: "",
+        price: "",
+      })
+    }
   }
 
   const nextStep = () => {
@@ -77,6 +111,7 @@ export default function NovaAssinatura() {
       const data = {
         id: uuid,
         ownerId: z.userID || "",
+        templateId: selectedTemplateId,
         name: formData.name,
         description: formData.description,
         type: "private",
@@ -95,102 +130,6 @@ export default function NovaAssinatura() {
     }
   }
 
-  const slideVariants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? 1000 : -1000,
-      opacity: 0,
-    }),
-    center: {
-      zIndex: 1,
-      x: 0,
-      opacity: 1,
-    },
-  }
-
-  const renderFormField = () => {
-    const currentField = formSteps[currentStep]
-
-    return (
-      <motion.div
-        key={currentField.id}
-        custom={currentStep}
-        variants={slideVariants}
-        initial="enter"
-        animate="center"
-        transition={{
-          type: "spring",
-          stiffness: 400,
-          damping: 35,
-          mass: 0.8,
-        }}
-        className="space-y-4"
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2, delay: 0.1 }}
-          className="space-y-2 "
-        >
-          <TypographyH2>{currentField.title}</TypographyH2>
-          <p className="text-muted-foreground">{currentField.subtitle}</p>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15 }}>
-          {currentField.id === "name" && (
-            <Input
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={(e) => updateFormData("name", e.target.value)}
-              placeholder="Digite o nome da assinatura"
-              required
-            />
-          )}
-
-          {currentField.id === "description" && (
-            <Input
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={(e) => updateFormData("description", e.target.value)}
-              placeholder="Digite uma descrição (opcional)"
-            />
-          )}
-
-          {currentField.id === "maxMembers" && (
-            <Input
-              id="maxMembers"
-              name="maxMembers"
-              type="number"
-              min="1"
-              value={formData.maxMembers}
-              onChange={(e) => updateFormData("maxMembers", e.target.value)}
-              placeholder="Digite o número máximo de membros"
-              required
-            />
-          )}
-
-          {currentField.id === "price" && (
-            <NumericFormat
-              id="price"
-              name="price"
-              value={formData.price}
-              onValueChange={(values) => updateFormData("price", values.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              thousandSeparator="."
-              decimalSeparator=","
-              prefix="R$ "
-              decimalScale={2}
-              fixedDecimalScale
-              placeholder="Digite o preço da assinatura"
-              required
-            />
-          )}
-        </motion.div>
-      </motion.div>
-    )
-  }
-
   if (showSuccess) {
     return (
       <AnimatePresence mode="wait">
@@ -205,86 +144,178 @@ export default function NovaAssinatura() {
   }
 
   return (
-    <div className="container py-8">
-      <div className="flex items-center gap-4 mb-8">
-        <TypographyH2>Nova Assinatura</TypographyH2>
-      </div>
+    <div className="min-h-screen flex flex-col">
+      <div className="container py-8 flex-1 flex items-center justify-center">
+        <div className="w-full max-w-xl">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="relative overflow-hidden min-h-[200px]">
+              <AnimatePresence initial={false} mode="wait" custom={currentStep}>
+                <NovaAssinaturaFormField
+                  currentStep={currentStep}
+                  selectedTemplateId={selectedTemplateId}
+                  formData={formData}
+                  handleTemplateSelect={handleTemplateSelect}
+                  updateFormData={updateFormData}
+                />
+              </AnimatePresence>
+            </div>
 
-      <div className="max-w-xl mx-auto">
-        {/* Progress bar */}
-        <div className="mb-8">
-          <div className="h-2 bg-muted rounded-full">
-            <motion.div
-              className="h-full bg-primary rounded-full"
-              initial={{ width: "0%" }}
-              animate={{ width: `${((currentStep + 1) / formSteps.length) * 100}%` }}
-              transition={{ duration: 0.3 }}
-            />
-          </div>
-          <div className="mt-2 text-sm text-muted-foreground text-center">
-            Passo {currentStep + 1} de {formSteps.length}
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="relative overflow-hidden">
-            <AnimatePresence initial={false} mode="wait" custom={currentStep}>
-              {renderFormField()}
-            </AnimatePresence>
-          </div>
-
-          <div className="flex gap-4 justify-end ">
-            <Button type="button" variant="outline" onClick={prevStep} disabled={currentStep === 0}>
-              Voltar
-            </Button>
-
-            {currentStep === formSteps.length - 1 ? (
-              <Button type="submit">Criar Assinatura</Button>
-            ) : (
-              <Button
-                type="button"
-                onClick={nextStep}
-                disabled={(currentStep === 0 && !formData.name) || (currentStep === 2 && !formData.maxMembers)}
-              >
-                Continuar
+            <div className="flex gap-4 justify-end ">
+              <Button type="button" variant="outline" onClick={prevStep} disabled={currentStep === 0}>
+                Voltar
               </Button>
-            )}
-          </div>
-        </form>
+
+              {currentStep === formSteps.length - 1 ? (
+                <Button type="submit">Criar Assinatura</Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={nextStep}
+                  disabled={
+                    (currentStep === 0 && !selectedTemplateId) ||
+                    (currentStep === 1 && !formData.name) ||
+                    (currentStep === 3 && !formData.maxMembers)
+                  }
+                >
+                  Continuar
+                </Button>
+              )}
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )
 }
 
-export function ErrorBoundary() {
-  const error = useRouteError()
-  const navigate = useNavigate()
+const NovaAssinaturaFormField = (props: {
+  currentStep: number
+  selectedTemplateId: string | null
+  formData: { name: string; description: string; maxMembers: string; price: string }
+  handleTemplateSelect: (
+    template: {
+      id: string
+      name: string
+      description: string | null
+      recommendedMaxMembers: number
+      recommendedPriceInCents: number
+    } | null
+  ) => void
+  updateFormData: (field: string, value: string) => void
+}) => {
+  const currentField = formSteps[props.currentStep]
+
+  const slideVariants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 1000 : -1000,
+      opacity: 0,
+    }),
+    center: {
+      zIndex: 1,
+      x: 0,
+      opacity: 1,
+    },
+  }
 
   return (
-    <div className="container py-8">
-      <div className="flex items-center gap-4 mb-8">
-        <Button variant="outline" onClick={() => navigate("/app")}>
-          Voltar
-        </Button>
-        <TypographyH2>Erro ao Criar Assinatura</TypographyH2>
-      </div>
+    <motion.div
+      key={currentField.id}
+      custom={props.currentStep}
+      variants={slideVariants}
+      initial="enter"
+      animate="center"
+      transition={{
+        type: "spring",
+        stiffness: 400,
+        damping: 35,
+        mass: 0.8,
+      }}
+      className="space-y-4"
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, delay: 0.1 }}
+        className="space-y-2 "
+      >
+        <TypographyH2>{currentField.title}</TypographyH2>
+        <NovaAssinaturaProgressBar currentStep={props.currentStep} />
+        <p className="text-muted-foreground">{currentField.subtitle}</p>
+      </motion.div>
 
-      <div className="max-w-xl bg-destructive/10 p-4 rounded-lg">
-        {isRouteErrorResponse(error) ? (
-          <>
-            <h2 className="text-lg font-semibold text-destructive">
-              {error.status} - {error.statusText}
-            </h2>
-            <p className="mt-2">{error.data}</p>
-          </>
-        ) : error instanceof Error ? (
-          <>
-            <h2 className="text-lg font-semibold text-destructive">Erro</h2>
-            <p className="mt-2">{error.message}</p>
-          </>
-        ) : (
-          <h2 className="text-lg font-semibold text-destructive">Erro desconhecido ao criar assinatura</h2>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15 }}>
+        {currentField.id === "template" && (
+          <TemplateSelect value={props.selectedTemplateId} onSelect={props.handleTemplateSelect} />
         )}
+
+        {currentField.id === "name" && (
+          <Input
+            id="name"
+            name="name"
+            value={props.formData.name}
+            onChange={(e) => props.updateFormData("name", e.target.value)}
+            placeholder="Ex: Curso de Culinária, Tv por assinatura, etc."
+            required
+          />
+        )}
+
+        {currentField.id === "description" && (
+          <Input
+            id="description"
+            name="description"
+            value={props.formData.description}
+            onChange={(e) => props.updateFormData("description", e.target.value)}
+            placeholder="Digite uma descrição (opcional)"
+          />
+        )}
+
+        {currentField.id === "maxMembers" && (
+          <Input
+            id="maxMembers"
+            name="maxMembers"
+            type="number"
+            min="1"
+            value={props.formData.maxMembers}
+            onChange={(e) => props.updateFormData("maxMembers", e.target.value)}
+            placeholder="Digite o número máximo de membros"
+            required
+          />
+        )}
+
+        {currentField.id === "price" && (
+          <NumericFormat
+            id="price"
+            name="price"
+            value={props.formData.price}
+            onValueChange={(values) => props.updateFormData("price", values.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            thousandSeparator="."
+            decimalSeparator=","
+            prefix="R$ "
+            decimalScale={2}
+            fixedDecimalScale
+            placeholder="Digite o preço da assinatura"
+            required
+          />
+        )}
+      </motion.div>
+    </motion.div>
+  )
+}
+
+const NovaAssinaturaProgressBar = (props: { currentStep: number }) => {
+  return (
+    <div className="mb-8">
+      <div className="h-2 bg-muted rounded-full">
+        <motion.div
+          className="h-full bg-primary rounded-full"
+          initial={{ width: "0%" }}
+          animate={{ width: `${((props.currentStep + 1) / formSteps.length) * 100}%` }}
+          transition={{ duration: 0.3 }}
+        />
+      </div>
+      <div className="mt-2 text-sm text-muted-foreground text-end">
+        Passo {props.currentStep + 1} de {formSteps.length}
       </div>
     </div>
   )
