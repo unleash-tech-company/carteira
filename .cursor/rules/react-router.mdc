@@ -1,0 +1,195 @@
+---
+description: 
+globs: /app/routes
+---
+1. Estrutura e Configuração das Rotas
+	•	Arquivo root.tsx:
+Esse é o ponto de entrada do seu app. Ele define a estrutura básica do documento (HTML, head, body) e renderiza um <Outlet /> para que as rotas filhas possam ser injetadas.
+
+// app/root.tsx
+import { Outlet, Links, Meta, Scripts, ScrollRestoration } from "react-router";
+
+export default function Root() {
+  return (
+    <html lang="pt-BR">
+      <head>
+        <meta charSet="utf-8" />
+        <Meta />
+        <Links />
+      </head>
+      <body>
+        <Outlet />
+        <ScrollRestoration />
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+
+
+	•	Definindo as rotas:
+Você pode definir as rotas de duas maneiras:
+	•	Configuração Manual (via API):
+Crie um array de objetos usando helpers como route, layout e index para organizar sua hierarquia.
+
+// app/routes.ts
+import { type RouteConfig, route, layout, index } from "@react-router/dev/routes";
+
+export default [
+  // Rotas protegidas com um layout que pode conter lógica de autenticação
+  layout("./ProtectedLayout.tsx", [
+    index("./Dashboard.tsx"),
+    route("perfil", "./Profile.tsx"),
+  ]),
+  // Rotas públicas
+  route("login", "./Login.tsx"),
+] satisfies RouteConfig;
+
+
+	•	File-Based Routing (rotas baseadas em arquivos):
+Organize os arquivos dentro do diretório app/routes. A estrutura de pastas e os nomes dos arquivos determinam as URLs. Por exemplo:
+
+app/
+├── routes/
+│   ├── _index.tsx         // corresponde a "/"
+│   ├── login.tsx          // corresponde a "/login"
+│   └── protected/
+│       ├── _index.tsx     // corresponde a "/protected"
+│       └── perfil.tsx     // corresponde a "/protected/perfil"
+└── root.tsx
+
+2. Rotas Aninhadas e Layouts
+	•	Uso do <Outlet />:
+Para criar rotas aninhadas, defina um componente de layout que renderize um <Outlet />. Isso permite que as rotas filhas sejam injetadas dentro do layout do pai.
+
+// ProtectedLayout.tsx
+import { redirect, Outlet } from "react-router";
+
+export async function loader({ request }: { request: Request }) {
+  const isAuthenticated = /* lógica para checar autenticação */;
+  if (!isAuthenticated) {
+    return redirect("/login");
+  }
+  return null;
+}
+
+export default function ProtectedLayout() {
+  return (
+    <div>
+      <header>
+        <h1>Área Protegida</h1>
+        {/* Menu ou navegação aqui */}
+      </header>
+      <main>
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+
+3. Carregamento e Mutação de Dados
+	•	Loaders:
+São funções associadas à rota que buscam os dados necessários para renderizar a página. Eles rodam tanto no servidor (SSR/pre-render) quanto em navegações do lado do cliente. Os dados retornados ficam disponíveis através do hook useLoaderData.
+
+// Dashboard.tsx
+import { useLoaderData } from "react-router";
+
+export async function loader() {
+  const data = await fetch("/api/dashboard").then(res => res.json());
+  return data;
+}
+
+export default function Dashboard() {
+  const data = useLoaderData();
+  return <div>Bem-vindo, {data.username}!</div>;
+}
+
+
+	•	Actions:
+São funções para mutações (por exemplo, formulários que modificam dados). Quando um formulário é submetido, o action correspondente é chamado e, após a mutação, os loaders podem ser revalidados automaticamente.
+
+// Profile.tsx
+import { Form, redirect, useActionData } from "react-router";
+
+export async function action({ request }) {
+  const formData = await request.formData();
+  // Lógica para atualizar perfil
+  return redirect("/protected"); // redireciona após a ação
+}
+
+export default function Profile() {
+  const actionData = useActionData();
+  return (
+    <Form method="post">
+      {/* Campos de formulário para edição do perfil */}
+      <button type="submit">Salvar</button>
+    </Form>
+  );
+}
+
+4. Navegação e Links
+	•	Links e NavLinks:
+Use <Link> para navegações simples e <NavLink> para obter estilos ativos automaticamente quando a rota estiver ativa.
+
+// Exemplo de NavLink
+import { NavLink } from "react-router";
+
+export function Menu() {
+  return (
+    <nav>
+      <NavLink to="/" end>Início</NavLink>
+      <NavLink to="/protected" end>Dashboard</NavLink>
+      <NavLink to="/login">Login</NavLink>
+    </nav>
+  );
+}
+
+
+	•	useNavigate:
+Para navegações programáticas, utilize o hook useNavigate.
+
+import { useNavigate } from "react-router";
+
+export function LogoutButton() {
+  const navigate = useNavigate();
+  function handleLogout() {
+    // Lógica de logout...
+    navigate("/login");
+  }
+  return <button onClick={handleLogout}>Sair</button>;
+}
+
+5. Tratamento de Erros
+	•	Error Boundaries:
+Você pode definir um componente ErrorBoundary em cada rota para capturar e exibir erros de forma amigável.
+
+// ErrorBoundary.tsx
+import { isRouteErrorResponse, useRouteError } from "react-router";
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  if (isRouteErrorResponse(error)) {
+    return (
+      <div>
+        <h1>{error.status} - {error.statusText}</h1>
+        <p>{error.data}</p>
+      </div>
+    );
+  } else if (error instanceof Error) {
+    return (
+      <div>
+        <h1>Erro</h1>
+        <p>{error.message}</p>
+      </div>
+    );
+  }
+  return <h1>Erro desconhecido</h1>;
+}
+
+6. Outras Funcionalidades
+	•	Progressive Enhancement:
+Como as rotas são baseadas em HTML e formulários, o app funciona mesmo com JavaScript desabilitado. Com JavaScript, o React Router intercepta os cliques e submissões para uma experiência SPA.
+	•	Code Splitting:
+O React Router automaticamente divide o código por rota. Isso significa que, ao navegar, somente o código necessário para a rota atual será carregado.
+	•	Type Safety:
+Se você configurar o TypeScript conforme as diretrizes do React Router, poderá ter tipos gerados automaticamente para loaders, actions e outros, garantindo uma melhor experiência de desenvolvimento.

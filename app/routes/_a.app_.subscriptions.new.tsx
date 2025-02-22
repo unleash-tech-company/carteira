@@ -3,27 +3,46 @@ import { Input } from "@/components/ui/input"
 import { TypographyH2 } from "@/components/ui/typography"
 import type { Schema } from "@/db/schema"
 import { useZero } from "@rocicorp/zero/react"
-import { Form, isRouteErrorResponse, redirect, useNavigate, useRouteError } from "react-router"
-
-export async function action({ request }: { request: Request }) {
-  const formData = await request.formData()
-  const subscriptionId = formData.get("subscriptionId") as string
-
-  if (!subscriptionId?.trim()) {
-    return { error: "ID da assinatura é obrigatório" }
-  }
-
-  const z = useZero<Schema>()
-  await z.mutate.subscription.insert({
-    id: subscriptionId,
-    ownerId: z.userID || "",
-  })
-
-  return redirect("/app")
-}
+import { isRouteErrorResponse, useNavigate, useRouteError } from "react-router"
+import { v4 as uuidv4 } from "uuid"
 
 export default function NovaAssinatura() {
   const navigate = useNavigate()
+  const z = useZero<Schema>()
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const formData = new FormData(event.currentTarget)
+    const name = formData.get("name") as string
+    const description = formData.get("description") as string
+    const maxMembers = Number(formData.get("maxMembers"))
+    const price = Number(formData.get("price"))
+
+    if (!name?.trim()) {
+      // TODO: Adicionar toast de erro
+      return
+    }
+
+    try {
+      const uuid = uuidv4()
+      await z.mutate.subscription.insert({
+        id: uuid,
+        ownerId: z.userID || "",
+        name,
+        description,
+        type: "private",
+        maxMembers,
+        price,
+        renewalDate: new Date().getTime(),
+        status: "active",
+      })
+
+      navigate("/app")
+    } catch (error) {
+      console.error(error)
+      // TODO: Adicionar toast de erro
+    }
+  }
 
   return (
     <div className="container py-8">
@@ -35,12 +54,48 @@ export default function NovaAssinatura() {
       </div>
 
       <div className="max-w-xl">
-        <Form method="post" className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label htmlFor="subscriptionId" className="text-sm font-medium">
-              ID da Assinatura
+            <label htmlFor="name" className="text-sm font-medium">
+              Nome da Assinatura
             </label>
-            <Input id="subscriptionId" name="subscriptionId" placeholder="Digite o ID da assinatura" required />
+            <Input id="name" name="name" placeholder="Digite o nome da assinatura" required />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="description" className="text-sm font-medium">
+              Descrição
+            </label>
+            <Input id="description" name="description" placeholder="Digite uma descrição (opcional)" />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="maxMembers" className="text-sm font-medium">
+              Número Máximo de Membros
+            </label>
+            <Input
+              id="maxMembers"
+              name="maxMembers"
+              type="number"
+              min="1"
+              placeholder="Digite o número máximo de membros"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="price" className="text-sm font-medium">
+              Preço
+            </label>
+            <Input
+              id="price"
+              name="price"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="Digite o preço da assinatura"
+              required
+            />
           </div>
 
           <div className="flex gap-4">
@@ -49,7 +104,7 @@ export default function NovaAssinatura() {
             </Button>
             <Button type="submit">Criar Assinatura</Button>
           </div>
-        </Form>
+        </form>
       </div>
     </div>
   )
