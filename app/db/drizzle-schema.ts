@@ -24,8 +24,6 @@ export const subscriptionTemplate = pgTable("subscription_template", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
-export type SubscriptionTemplate = typeof subscriptionTemplate.$inferSelect
-export type InsertSubscriptionTemplate = typeof subscriptionTemplate.$inferInsert
 
 export const subscription = pgTable("subscription", {
   id: text("id").primaryKey(),
@@ -45,8 +43,6 @@ export const subscription = pgTable("subscription", {
 })
 
 export const subscriptionSchema = createSelectSchema(subscription)
-export type Subscription = typeof subscription.$inferSelect
-export type InsertSubscription = typeof subscription.$inferInsert
 
 export const subscriptionPassword = pgTable("subscription_password", {
   subscriptionId: text("subscription_id")

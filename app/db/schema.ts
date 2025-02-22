@@ -70,6 +70,12 @@ type TableName = keyof Schema["tables"]
 type PermissionRule<TTable extends TableName> = (authData: AuthData, eb: ExpressionBuilder<Schema, TTable>) => Condition
 export type Subscription = Row<typeof schema.tables.subscription>
 
+// #region Types
+
+export type SubscriptionTemplate = Row<typeof schema.tables.subscriptionTemplate>
+
+// #endregion
+
 // The contents of your decoded JWT.
 type AuthData = {
   sub: string | null
