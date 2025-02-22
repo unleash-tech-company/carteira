@@ -1,11 +1,10 @@
 import { SuccessScreen } from "@/components/subscription/success-screen"
 import { TemplateSelect } from "@/components/subscription/template-select"
-import { TypeSelect } from "@/components/subscription/type-select"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form"
 import { ControlledInput } from "@/components/ui/form/controlled-input"
 import { TypographyH2 } from "@/components/ui/typography"
-import type { SubscriptionTemplate } from "@/db/drizzle-schema"
+import type { InsertSubscriptionTemplate } from "@/db/drizzle-schema"
 import type { Schema } from "@/db/schema"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useZero } from "@rocicorp/zero/react"
@@ -19,11 +18,17 @@ import * as z from "zod"
 
 const formSchema = z.object({
   templateId: z.string().nullable(),
-  type: z.string().min(1, "O tipo da assinatura é obrigatório"),
   name: z.string().min(1, "O nome da assinatura é obrigatório"),
   description: z.string().optional(),
   maxMembers: z.string().min(1, "O número máximo de membros é obrigatório"),
   price: z.string().min(1, "O preço da assinatura é obrigatório"),
+  dueDate: z
+    .string()
+    .min(1, "O dia de vencimento é obrigatório")
+    .refine((val) => {
+      const num = parseInt(val)
+      return num >= 1 && num <= 31
+    }, "O dia de vencimento deve estar entre 1 e 31"),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -35,29 +40,17 @@ const formSteps = [
     subtitle: "Selecione um tipo de assinatura ou crie uma personalizada",
   },
   {
-    id: "type",
-    title: "Categoria",
-    subtitle: "Selecione a categoria da sua assinatura",
+    id: "custom",
+    title: "Detalhes da Assinatura",
+    subtitle: "Defina o nome e a descrição da sua assinatura",
+    showOnlyForCustom: true,
+    fields: ["name", "description"],
   },
   {
-    id: "name",
-    title: "Nome da Assinatura",
-    subtitle: "Como você quer chamar esta assinatura?",
-  },
-  {
-    id: "description",
-    title: "Descrição",
-    subtitle: "Adicione uma descrição para ajudar os membros a entenderem do que se trata",
-  },
-  {
-    id: "maxMembers",
-    title: "Número Máximo de Membros",
-    subtitle: "Quantas pessoas podem participar desta assinatura?",
-  },
-  {
-    id: "price",
-    title: "Preço da Assinatura",
-    subtitle: "Quanto cada membro irá pagar mensalmente?",
+    id: "payment",
+    title: "Detalhes do Pagamento",
+    subtitle: "Configure os valores e a data de vencimento",
+    fields: ["maxMembers", "price", "dueDate"],
   },
 ]
 
@@ -67,33 +60,54 @@ export default function NovaAssinatura() {
   const [currentStep, setCurrentStep] = useState(0)
   const [showSuccess, setShowSuccess] = useState(false)
   const [subscriptionId, setSubscriptionId] = useState("")
+  const [selectedTemplateIsApproved, setSelectedTemplateIsApproved] = useState(false)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       templateId: null,
-      type: "",
       name: "",
       description: "",
       maxMembers: "",
       price: "",
+      dueDate: "",
     },
   })
 
   const nextStep = () => {
     if (currentStep < formSteps.length - 1) {
+      // Se o template selecionado é aprovado e estamos no primeiro passo,
+      // pule o passo de detalhes customizados
+      if (currentStep === 0 && selectedTemplateIsApproved) {
+        setCurrentStep(2)
+        return
+      }
       setCurrentStep((prev) => prev + 1)
     }
   }
 
   const prevStep = () => {
     if (currentStep > 0) {
+      // Se estamos no último passo e o template é aprovado,
+      // volte para o primeiro passo
+      if (currentStep === 2 && selectedTemplateIsApproved) {
+        setCurrentStep(0)
+        return
+      }
       setCurrentStep((prev) => prev - 1)
     }
   }
 
   async function onSubmit(values: FormValues) {
     const numericPrice = Number(values.price.replace(/\D/g, "")) / 100
+    const today = new Date()
+    const dueDay = parseInt(values.dueDate)
+    let dueDate = new Date(today.getFullYear(), today.getMonth(), dueDay)
+
+    // Se o dia de vencimento já passou este mês, define para o próximo mês
+    if (dueDate.getTime() < today.getTime()) {
+      dueDate = new Date(today.getFullYear(), today.getMonth() + 1, dueDay)
+    }
 
     try {
       const uuid = uuidv4()
@@ -103,10 +117,10 @@ export default function NovaAssinatura() {
         templateId: values.templateId,
         name: values.name,
         description: values.description,
-        type: values.type,
+        type: "private",
         maxMembers: Number(values.maxMembers),
         princeInCents: numericPrice * 100,
-        renewalDate: new Date().getTime(),
+        renewalDate: dueDate.getTime(),
         status: "active",
       }
       await z.mutate.subscription.insert(data)
@@ -133,8 +147,6 @@ export default function NovaAssinatura() {
     )
   }
 
-  console.log(form.watch("templateId"), form.watch("name"), form.watch("maxMembers"))
-
   return (
     <div className="min-h-screen flex flex-col">
       <div className="container py-8 flex-1 flex items-center justify-center">
@@ -143,7 +155,13 @@ export default function NovaAssinatura() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="relative overflow-hidden min-h-[200px]">
                 <AnimatePresence initial={false} mode="wait" custom={currentStep}>
-                  <NovaAssinaturaFormField form={form} currentStep={currentStep} />
+                  <NovaAssinaturaFormField
+                    form={form}
+                    currentStep={currentStep}
+                    onTemplateSelect={(template) => {
+                      setSelectedTemplateIsApproved(template?.approved ?? false)
+                    }}
+                  />
                 </AnimatePresence>
               </div>
 
@@ -160,9 +178,7 @@ export default function NovaAssinatura() {
                     onClick={nextStep}
                     disabled={
                       (currentStep === 0 && !form.watch("templateId")) ||
-                      (currentStep === 1 && !form.watch("type")) ||
-                      (currentStep === 2 && !form.watch("name")) ||
-                      (currentStep === 4 && !form.watch("maxMembers"))
+                      (!selectedTemplateIsApproved && currentStep === 1 && !form.watch("name"))
                     }
                   >
                     Continuar
@@ -177,7 +193,11 @@ export default function NovaAssinatura() {
   )
 }
 
-const NovaAssinaturaFormField = (props: { form: ReturnType<typeof useForm<FormValues>>; currentStep: number }) => {
+const NovaAssinaturaFormField = (props: {
+  form: ReturnType<typeof useForm<FormValues>>
+  currentStep: number
+  onTemplateSelect: (template: InsertSubscriptionTemplate | null) => void
+}) => {
   const currentField = formSteps[props.currentStep]
   const form = props.form
 
@@ -193,18 +213,14 @@ const NovaAssinaturaFormField = (props: { form: ReturnType<typeof useForm<FormVa
     },
   }
 
-  const handleTemplateSelect = (
-    template: Pick<
-      SubscriptionTemplate,
-      "id" | "name" | "description" | "recommendedMaxMembers" | "recommendedPriceInCents"
-    > | null
-  ) => {
+  const handleTemplateSelect = (template: InsertSubscriptionTemplate | null) => {
     if (!template) {
       form.setValue("templateId", null)
       form.setValue("name", "")
       form.setValue("description", "")
       form.setValue("maxMembers", "")
       form.setValue("price", "")
+      props.onTemplateSelect(null)
       return
     }
     form.setValue("templateId", template.id)
@@ -212,6 +228,7 @@ const NovaAssinaturaFormField = (props: { form: ReturnType<typeof useForm<FormVa
     form.setValue("description", template.description ?? "")
     form.setValue("maxMembers", template.recommendedMaxMembers.toString())
     form.setValue("price", (template.recommendedPriceInCents / 100).toFixed(2))
+    props.onTemplateSelect(template)
   }
 
   return (
@@ -256,59 +273,58 @@ const NovaAssinaturaFormField = (props: { form: ReturnType<typeof useForm<FormVa
           />
         )}
 
-        {currentField.id === "type" && (
-          <FormField
-            control={props.form.control}
-            name="type"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <TypeSelect value={field.value} onSelect={(value) => field.onChange(value)} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {currentField.id === "custom" && (
+          <div className="space-y-4">
+            <ControlledInput
+              name="name"
+              control={props.form.control}
+              placeholder="Ex: Curso de Culinária, Tv por assinatura, etc."
+            />
+
+            <ControlledInput
+              name="description"
+              control={props.form.control}
+              placeholder="Digite uma descrição (opcional)"
+            />
+          </div>
         )}
 
-        {currentField.id === "name" && (
-          <ControlledInput
-            name="name"
-            control={props.form.control}
-            placeholder="Ex: Curso de Culinária, Tv por assinatura, etc."
-          />
-        )}
+        {currentField.id === "payment" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <ControlledInput
+                name="maxMembers"
+                control={props.form.control}
+                type="number"
+                min={1}
+                placeholder="Quantidade de pessoas"
+                label="Quantidade de pessoas"
+              />
 
-        {currentField.id === "description" && (
-          <ControlledInput
-            name="description"
-            control={props.form.control}
-            placeholder="Digite uma descrição (opcional)"
-          />
-        )}
+              <ControlledInput
+                name="price"
+                control={props.form.control}
+                numeric
+                thousandSeparator="."
+                decimalSeparator=","
+                prefix="R$ "
+                decimalScale={2}
+                fixedDecimalScale
+                placeholder="Valor por pessoa"
+                label="Valor por pessoa"
+              />
+            </div>
 
-        {currentField.id === "maxMembers" && (
-          <ControlledInput
-            name="maxMembers"
-            control={props.form.control}
-            type="number"
-            min={1}
-            placeholder="Digite o número máximo de membros"
-          />
-        )}
-
-        {currentField.id === "price" && (
-          <ControlledInput
-            name="price"
-            control={props.form.control}
-            numeric
-            thousandSeparator="."
-            decimalSeparator=","
-            prefix="R$ "
-            decimalScale={2}
-            fixedDecimalScale
-            placeholder="Digite o preço da assinatura"
-          />
+            <ControlledInput
+              name="dueDate"
+              control={props.form.control}
+              type="number"
+              min={1}
+              max={31}
+              placeholder="Dia do vencimento (1-31)"
+              label="Dia do vencimento"
+            />
+          </div>
         )}
       </motion.div>
     </motion.div>

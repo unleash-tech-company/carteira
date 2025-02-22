@@ -1,19 +1,14 @@
 import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import type { SubscriptionTemplate } from "@/db/drizzle-schema"
+import type { InsertSubscriptionTemplate } from "@/db/drizzle-schema"
 import { useSubscriptionTemplates } from "@/hooks/use-subscription-templates"
 import { cn } from "@/lib/utils"
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react"
 import { useState } from "react"
 
 interface TemplateSelectProps {
-  onSelect: (
-    template: Pick<
-      SubscriptionTemplate,
-      "id" | "name" | "description" | "recommendedMaxMembers" | "recommendedPriceInCents"
-    > | null
-  ) => void
+  onSelect: (template: InsertSubscriptionTemplate | null) => void
   value?: string | null
 }
 
@@ -37,7 +32,17 @@ export function TemplateSelect({ onSelect, value }: TemplateSelectProps) {
 
     if (matchedTemplate) {
       setOpen(false)
-      return onSelect(matchedTemplate)
+      return onSelect({
+        id: matchedTemplate.id,
+        name: matchedTemplate.name,
+        description: matchedTemplate.description,
+        recommendedMaxMembers: matchedTemplate.recommendedMaxMembers,
+        recommendedPriceInCents: matchedTemplate.recommendedPriceInCents,
+        approved: matchedTemplate.approved ?? false,
+        category: matchedTemplate.category,
+        provider: matchedTemplate.provider,
+        planName: matchedTemplate.planName,
+      })
     }
     onSelect({
       id: `custom-${Date.now()}`,
@@ -45,6 +50,10 @@ export function TemplateSelect({ onSelect, value }: TemplateSelectProps) {
       description: "",
       recommendedMaxMembers: 1,
       recommendedPriceInCents: 0,
+      approved: false,
+      category: "",
+      provider: "",
+      planName: "",
     })
     setOpen(false)
   }

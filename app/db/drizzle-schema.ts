@@ -25,6 +25,7 @@ export const subscriptionTemplate = pgTable("subscription_template", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
 export type SubscriptionTemplate = typeof subscriptionTemplate.$inferSelect
+export type InsertSubscriptionTemplate = typeof subscriptionTemplate.$inferInsert
 
 export const subscription = pgTable("subscription", {
   id: text("id").primaryKey(),
