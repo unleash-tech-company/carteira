@@ -2,15 +2,39 @@ import { Button } from "@/components/ui/button"
 import { TypographyH2 } from "@/components/ui/typography"
 import { Player } from "@lottiefiles/react-lottie-player"
 import { motion } from "framer-motion"
+import { toast } from "sonner"
 import { successAnimation } from "../animations/success-check"
 
 interface SuccessScreenProps {
   subscriptionName: string
-  onShare: () => void
+  subscriptionId: string
+  name: string
   onBackToHome: () => void
 }
 
-export function SuccessScreen({ subscriptionName, onShare, onBackToHome }: SuccessScreenProps) {
+export function SuccessScreen({ subscriptionName, subscriptionId, name, onBackToHome }: SuccessScreenProps) {
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/app/subscriptions/${subscriptionId}/join`
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Junte-se à assinatura ${name}`,
+          text: `Venha participar da assinatura compartilhada ${name}! Clique no link para entrar:`,
+          url: shareUrl,
+        })
+      } catch (error) {
+        console.error("Erro ao compartilhar:", error)
+      }
+    } else {
+      navigator.clipboard.writeText(shareUrl)
+    }
+
+    toast.success("Link copiado para a área de transferência!", {
+      description: "Agora você pode compartilhar com quem quiser convidar.",
+    })
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -55,7 +79,7 @@ export function SuccessScreen({ subscriptionName, onShare, onBackToHome }: Succe
           </p>
 
           <div className="flex flex-col gap-4 mt-8">
-            <Button onClick={onShare} size="lg" className="relative overflow-hidden group">
+            <Button onClick={handleShare} size="lg" className="relative overflow-hidden group">
               <motion.span
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -67,6 +91,17 @@ export function SuccessScreen({ subscriptionName, onShare, onBackToHome }: Succe
             <Button variant="outline" onClick={onBackToHome} size="lg">
               Voltar para o Início
             </Button>
+          </div>
+
+          <div className="mt-8 text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">
+            <p className="mb-2">
+              <span className="font-medium">Importante:</span> Esta assinatura foi criada como privada e só pode ser
+              encontrada através do link de convite.
+            </p>
+            <p>
+              Você sempre poderá acessar e compartilhar o link de convite posteriormente através da página da
+              assinatura. Apenas membros com o link poderão solicitar participação.
+            </p>
           </div>
         </motion.div>
       </div>

@@ -62,26 +62,6 @@ export default function NovaAssinatura() {
     }
   }
 
-  const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/app/subscriptions/${subscriptionId}/join`
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Junte-se à assinatura ${formData.name}`,
-          text: `Venha participar da assinatura compartilhada ${formData.name}! Clique no link para entrar:`,
-          url: shareUrl,
-        })
-      } catch (error) {
-        console.error("Erro ao compartilhar:", error)
-      }
-    } else {
-      // Fallback para copiar o link
-      navigator.clipboard.writeText(shareUrl)
-      // TODO: Adicionar toast de sucesso
-    }
-  }
-
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -214,7 +194,12 @@ export default function NovaAssinatura() {
   if (showSuccess) {
     return (
       <AnimatePresence mode="wait">
-        <SuccessScreen subscriptionName={formData.name} onShare={handleShare} onBackToHome={() => navigate("/app")} />
+        <SuccessScreen
+          subscriptionName={formData.name}
+          subscriptionId={subscriptionId}
+          name={formData.name}
+          onBackToHome={() => navigate("/app")}
+        />
       </AnimatePresence>
     )
   }
