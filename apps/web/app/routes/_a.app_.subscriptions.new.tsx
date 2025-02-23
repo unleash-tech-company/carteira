@@ -6,6 +6,7 @@ import { ControlledToggleGroup, type ToggleOption } from "@/components/ui/form/c
 import { TypographyH2 } from "@/components/ui/typography"
 import { querySubscriptionTemplates } from "@/hooks/use-subscription-templates"
 import { formatCurrency } from "@/lib/currency"
+import { TODO } from "@/lib/utils"
 import { SubscriptionService } from "@/service/subscriptions"
 import type { Schema, SubscriptionTemplate } from "@carteira/db"
 import { useUser } from "@clerk/react-router"
@@ -60,52 +61,6 @@ export default function NovaAssinatura() {
       },
     },
   })
-  const nextStep = (values: FormNewSubscription) => {
-    const config = formStepConfig[currentStep]
-    if (config.nextStep) {
-      const nextStep = config.nextStep(selectedTemplateIsApproved)
-      setCurrentStep(nextStep)
-      return
-    }
-
-    onSubmit(values)
-  }
-
-  const prevStep = () => {
-    const config = formStepConfig[currentStep]
-    if (config.prevStep) {
-      const prevStep = config.prevStep(selectedTemplateIsApproved)
-      setCurrentStep(prevStep)
-    }
-  }
-
-  async function onSubmit(values: FormNewSubscription) {
-    const [result, err] = await SubscriptionService.createSubscription(z, values)
-
-    if (err) {
-      console.error(err)
-      toast.error("Erro ao criar assinatura", {
-        description: "Ocorreu um erro ao criar sua assinatura. Por favor, tente novamente.",
-      })
-      return
-    }
-
-    setSubscriptionId(result.subscriptionId)
-    setShowSuccess(true)
-  }
-
-  if (showSuccess) {
-    return (
-      <AnimatePresence mode="wait">
-        <SuccessScreen
-          subscriptionName={methods.getValues("subscription.name")}
-          subscriptionId={subscriptionId}
-          name={methods.getValues("subscription.name")}
-          onBackToHome={() => navigate("/app")}
-        />
-      </AnimatePresence>
-    )
-  }
 
   const currentConfig = formStepConfig[currentStep]
 
@@ -149,29 +104,27 @@ export default function NovaAssinatura() {
                       .with(FormStep.SELECT_TEMPLATE, () => (
                         <SelectTemplateStep setSelectedTemplateIsApproved={setSelectedTemplateIsApproved} />
                       ))
-                      .with(FormStep.CUSTOM_DETAILS, () => <CustomDetailsStep />)
-                      .with(FormStep.PAYMENT_DETAILS, () => <PaymentDetailsStep />)
-                      .with(FormStep.PASSWORD, () => <PasswordStep />)
+                      .with(FormStep.CUSTOM_DETAILS, () => (
+                        <CustomDetailsStep currentStep={currentStep} setCurrentStep={setCurrentStep} />
+                      ))
+                      .with(FormStep.PAYMENT_DETAILS, () => (
+                        <PaymentDetailsStep currentStep={currentStep} setCurrentStep={setCurrentStep} />
+                      ))
+                      .with(FormStep.PASSWORD, () => (
+                        <PasswordStep currentStep={currentStep} setCurrentStep={setCurrentStep} />
+                      ))
+                      .with(FormStep.SUCCESS, () => (
+                        <SuccessScreen
+                          subscriptionName={methods.getValues("subscription.name")}
+                          subscriptionId={subscriptionId}
+                          name={methods.getValues("subscription.name")}
+                          onBackToHome={() => navigate("/app")}
+                        />
+                      ))
                       .exhaustive()}
                   </motion.div>
                 </motion.div>
               </AnimatePresence>
-            </div>
-            <div className="flex gap-4 justify-end mt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={prevStep}
-                disabled={!formStepConfig[currentStep].prevStep}
-              >
-                Voltar
-              </Button>
-
-              <Button type="button" onClick={methods.handleSubmit(nextStep)}>
-                {match(currentStep)
-                  .with(FormStep.PASSWORD, () => "Criar Assinatura")
-                  .otherwise(() => "Continuar")}
-              </Button>
             </div>
           </FormProvider>
         </div>
@@ -185,39 +138,34 @@ enum FormStep {
   CUSTOM_DETAILS = "CUSTOM_DETAILS",
   PAYMENT_DETAILS = "PAYMENT_DETAILS",
   PASSWORD = "PASSWORD",
+  SUCCESS = "SUCCESS",
 }
 
 type StepConfig = {
   title: string
   subtitle: string
-  nextStep: ((isApproved: boolean) => FormStep) | null
-  prevStep: ((isApproved: boolean) => FormStep) | null
 }
 
 const formStepConfig: Record<FormStep, StepConfig> = {
   [FormStep.SELECT_TEMPLATE]: {
     title: "Tipo de Assinatura",
     subtitle: "Selecione um tipo de assinatura ou crie uma personalizada",
-    nextStep: () => FormStep.CUSTOM_DETAILS,
-    prevStep: null,
   },
   [FormStep.CUSTOM_DETAILS]: {
     title: "Detalhes da Assinatura",
     subtitle: "Defina o nome e a descrição da sua assinatura",
-    nextStep: () => FormStep.PAYMENT_DETAILS,
-    prevStep: () => FormStep.SELECT_TEMPLATE,
   },
   [FormStep.PAYMENT_DETAILS]: {
     title: "Detalhes do Pagamento",
     subtitle: "Configure os valores e a data de vencimento",
-    nextStep: () => FormStep.PASSWORD,
-    prevStep: (isApproved: boolean) => (isApproved ? FormStep.SELECT_TEMPLATE : FormStep.CUSTOM_DETAILS),
   },
   [FormStep.PASSWORD]: {
     title: "Tipo de Acesso",
     subtitle: "Defina se o serviço requer senha para funcionar",
-    nextStep: null,
-    prevStep: () => FormStep.PAYMENT_DETAILS,
+  },
+  [FormStep.SUCCESS]: {
+    title: "Assinatura Criada com Sucesso",
+    subtitle: "Agora você pode compartilhar a assinatura com seus amigos",
   },
 } as const
 
@@ -306,95 +254,151 @@ function SelectTemplateStep({ setSelectedTemplateIsApproved }: SelectTemplateSte
   )
 }
 
-function CustomDetailsStep() {
-  const form = useFormContext<FormNewSubscription>()
-
+function CustomDetailsStep(p: { currentStep: FormStep; setCurrentStep: (step: FormStep) => void }) {
+  const methods = useFormContext<FormNewSubscription>()
+  const prevStep = () => {
+    p.setCurrentStep(FormStep.SELECT_TEMPLATE)
+  }
+  const onSubmit = (values: FormNewSubscription) => {
+    p.setCurrentStep(FormStep.PAYMENT_DETAILS)
+  }
   return (
-    <div className="space-y-4">
-      <ControlledInput
-        name="name"
-        schema={z.string().min(1, "O nome da assinatura é obrigatório")}
-        placeholder="Ex: Curso de Culinária, Tv por assinatura, etc."
-        label="Nome da assinatura"
-      />
-
-      <ControlledInput
-        name="description"
-        schema={z.string().optional()}
-        placeholder="Digite uma descrição (opcional)"
-        label="Descrição"
-      />
-    </div>
-  )
-}
-
-function PaymentDetailsStep() {
-  const form = useFormContext<FormNewSubscription>()
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+    <>
+      <div className="space-y-4">
         <ControlledInput
-          name="maxMembers"
-          schema={z.coerce.number().min(1, "A quantidade de pessoas é obrigatória")}
-          type="number"
-          min={1}
-          placeholder="Quantidade de pessoas"
-          label="Quantidade de pessoas que vão dividir"
+          name="name"
+          schema={z.string().min(1, "O nome da assinatura é obrigatório")}
+          placeholder="Ex: Curso de Culinária, Tv por assinatura, etc."
+          label="Nome da assinatura"
         />
 
         <ControlledInput
-          name="price"
-          numeric
-          thousandSeparator="."
-          decimalSeparator=","
-          prefix="R$ "
-          decimalScale={2}
-          schema={z.string().min(1, "O preço da assinatura é obrigatório")}
-          fixedDecimalScale
-          placeholder="Valor total da assinatura"
-          label="Valor total da assinatura"
+          name="description"
+          schema={z.string().optional()}
+          placeholder="Digite uma descrição (opcional)"
+          label="Descrição"
         />
       </div>
+      <div className="flex gap-4 justify-end mt-4">
+        <Button type="button" variant="outline" onClick={prevStep}>
+          Voltar
+        </Button>
 
-      <ControlledInput
-        name="dueDate"
-        schema={z.coerce
-          .number()
-          .min(1, "O dia de vencimento é obrigatório")
-          .max(31, "O dia de vencimento deve estar entre 1 e 31")}
-        type="number"
-        min={1}
-        max={31}
-        placeholder="Dia do vencimento (1-31)"
-        label="Dia do vencimento do pagamento"
-      />
-
-      {form.watch("subscription.maxMembers") && form.watch("subscription.princeInCents") && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-muted p-4 rounded-lg space-y-2"
-        >
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Cada pessoa vai pagar:
-            </span>
-            <span className="font-medium text-primary">
-              {formatCurrency({
-                valueInCents: form.watch("subscription.princeInCents"),
-              })}
-            </span>
-          </div>
-        </motion.div>
-      )}
-    </div>
+        <Button type="button" onClick={methods.handleSubmit(onSubmit)}>
+          {match(p.currentStep)
+            .with(FormStep.PASSWORD, () => "Criar Assinatura")
+            .otherwise(() => "Continuar")}
+        </Button>
+      </div>
+    </>
   )
 }
 
-function PasswordStep() {
+function PaymentDetailsStep(p: { currentStep: FormStep; setCurrentStep: (step: FormStep) => void }) {
   const form = useFormContext<FormNewSubscription>()
+  const prevStep = () => {
+    p.setCurrentStep(FormStep.CUSTOM_DETAILS)
+  }
+  const onSubmit = (values: FormNewSubscription) => {
+    p.setCurrentStep(FormStep.PASSWORD)
+  }
+
+  return (
+    <>
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <ControlledInput
+            name="maxMembers"
+            schema={z.coerce.number().min(1, "A quantidade de pessoas é obrigatória")}
+            type="number"
+            min={1}
+            placeholder="Quantidade de pessoas"
+            label="Quantidade de pessoas que vão dividir"
+          />
+
+          <ControlledInput
+            name="price"
+            numeric
+            thousandSeparator="."
+            decimalSeparator=","
+            prefix="R$ "
+            decimalScale={2}
+            schema={z.string().min(1, "O preço da assinatura é obrigatório")}
+            fixedDecimalScale
+            placeholder="Valor total da assinatura"
+            label="Valor total da assinatura"
+          />
+        </div>
+
+        <ControlledInput
+          name="dueDate"
+          schema={z.coerce
+            .number()
+            .min(1, "O dia de vencimento é obrigatório")
+            .max(31, "O dia de vencimento deve estar entre 1 e 31")}
+          type="number"
+          min={1}
+          max={31}
+          placeholder="Dia do vencimento (1-31)"
+          label="Dia do vencimento do pagamento"
+        />
+
+        {form.watch("subscription.maxMembers") && form.watch("subscription.princeInCents") && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-muted p-4 rounded-lg space-y-2"
+          >
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Cada pessoa vai pagar:
+              </span>
+              <span className="font-medium text-primary">
+                {formatCurrency({
+                  valueInCents: form.watch("subscription.princeInCents"),
+                })}
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </div>
+      <div className="flex gap-4 justify-end mt-4">
+        <Button type="button" variant="outline" onClick={prevStep}>
+          Voltar
+        </Button>
+
+        <Button type="button" onClick={form.handleSubmit(onSubmit)}>
+          {match(p.currentStep)
+            .with(FormStep.PASSWORD, () => "Criar Assinatura")
+            .otherwise(() => "Continuar")}
+        </Button>
+      </div>
+    </>
+  )
+}
+
+function PasswordStep(p: { currentStep: FormStep; setCurrentStep: (step: FormStep) => void }) {
+  const zero = useZero<Schema>()
+  const form = useFormContext<FormNewSubscription>()
+  const [subscriptionId, setSubscriptionId] = useState("")
+  const prevStep = () => {
+    p.setCurrentStep(FormStep.PAYMENT_DETAILS)
+  }
+  async function onSubmit(values: FormNewSubscription) {
+    TODO("Tem que dar um jeito nisso auqi pq não tamo passando o id pra tela de sucesso")
+    const [result, err] = await SubscriptionService.createSubscription(zero, values)
+
+    if (err) {
+      console.error(err)
+      toast.error("Erro ao criar assinatura", {
+        description: "Ocorreu um erro ao criar sua assinatura. Por favor, tente novamente.",
+      })
+      return
+    }
+
+    setSubscriptionId(result.subscriptionId)
+  }
 
   const options: ToggleOption<boolean>[] = [
     {
@@ -412,34 +416,45 @@ function PasswordStep() {
   ]
 
   return (
-    <div className="space-y-4">
-      <ControlledToggleGroup
-        schema={z.boolean()}
-        name="local.hasPassword"
-        options={options}
-        onSelect={(value) => {
-          if (!value) {
-            form.setValue("subscriptionAccount.encryptedAccountPassword", "")
-          }
-        }}
-      />
+    <>
+      <div className="space-y-4">
+        <ControlledToggleGroup
+          schema={z.boolean()}
+          name="local.hasPassword"
+          options={options}
+          onSelect={(value) => {
+            if (!value) {
+              form.setValue("subscriptionAccount.encryptedAccountPassword", "")
+            }
+          }}
+        />
 
-      {form.watch("local.hasPassword") && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
-        >
-          <ControlledInput
-            schema={z.string().refine((value) => value.length >= 1, "A senha é obrigatória")}
-            type="password"
-            name="password"
-            label="Senha de acesso"
-            placeholder="Digite a senha do serviço"
-          />
-        </motion.div>
-      )}
-    </div>
+        {form.watch("local.hasPassword") && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+          >
+            <ControlledInput
+              schema={z.string().refine((value) => value.length >= 1, "A senha é obrigatória")}
+              type="password"
+              name="password"
+              label="Senha de acesso"
+              placeholder="Digite a senha do serviço"
+            />
+          </motion.div>
+        )}
+      </div>
+      <div className="flex gap-4 justify-end mt-4">
+        <Button type="button" variant="outline" onClick={prevStep}>
+          Voltar
+        </Button>
+
+        <Button type="button" onClick={form.handleSubmit(onSubmit)}>
+          Criar Assinatura
+        </Button>
+      </div>
+    </>
   )
 }
 
