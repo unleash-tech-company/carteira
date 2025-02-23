@@ -1,10 +1,10 @@
+import { err, fromPromise, ok, type AppResult } from "@/lib/result"
+import type { Schema, Subscription, SubscriptionAccount, SubscriptionTemplate } from "@carteira/db"
 import {
   subscriptionAccountInsertSchema,
   subscriptionInsertSchema,
   subscriptionTemplateInsertSchema,
-} from "@/db/drizzle-schema"
-import type { Schema, Subscription, SubscriptionAccount, SubscriptionTemplate } from "@/db/schema"
-import { err, fromPromise, ok, type AppResult } from "@/lib/result"
+} from "@carteira/db"
 import type { Zero } from "@rocicorp/zero"
 
 type SubscriptionServiceError = {

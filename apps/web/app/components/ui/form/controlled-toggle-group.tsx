@@ -1,9 +1,8 @@
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
-import type { ZodOptional } from "node_modules/zod/lib/types"
 import { useFormContext } from "react-hook-form"
-import type { ZodType } from "zod"
+import type { ZodOptional, ZodType } from "zod"
 
 export type ToggleOption<T> = {
   value: T

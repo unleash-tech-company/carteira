@@ -16,7 +16,8 @@
     "node": ">=10"
   },
   "scripts": {
-    "dev": "dotenv -e ../../.env --  zero-cache-dev -p src/schema.ts"
+    "dev": "dotenv -e ../../.env --  zero-cache-dev -p src/schema.ts",
+    "tscheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@size-limit/preset-small-lib": "^11.2.0",

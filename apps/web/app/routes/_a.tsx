@@ -1,5 +1,5 @@
 import { Header } from "@/components/ui/header"
-import { schema } from "@/db/schema"
+import { schema } from "@carteira/db"
 import { getAuth } from "@clerk/react-router/ssr.server"
 import { Zero } from "@rocicorp/zero"
 import { ZeroProvider } from "@rocicorp/zero/react"

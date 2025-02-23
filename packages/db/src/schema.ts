@@ -86,7 +86,7 @@ type AuthData = {
   sub: string | null
 }
 
-function and<TTable extends TableName>(...rules: PermissionRule<TTable>[]): PermissionRule<TTable> {
+export function and<TTable extends TableName>(...rules: PermissionRule<TTable>[]): PermissionRule<TTable> {
   return (authData, eb) => eb.and(...rules.map((rule) => rule(authData, eb)))
 }
 

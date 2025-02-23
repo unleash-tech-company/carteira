@@ -1,2 +1,2 @@
-export type * from "./drizzle-schema"
-export type * from "./schema"
+export * from "./drizzle-schema"
+export * from "./schema"

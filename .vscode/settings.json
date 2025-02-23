@@ -1,7 +1,13 @@
 {
   "workbench.colorCustomizations": {
     "minimap.errorHighlight": "#ff0000",
-    "terminal.background": "#00000000"
+    "terminal.background": "#00000000",
+    "tab.activeBorder": "#4F6A0A",
+    "statusBar.background": "#4F6A0A",
+    "statusBar.foreground": "#ffffff"
   },
-  "files.exclude": {}
+  "files.exclude": {
+    ".turbo": true,
+    ".vscode": true
+  }
 }

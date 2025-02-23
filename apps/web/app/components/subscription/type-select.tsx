@@ -3,6 +3,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { querySubscriptionTemplates } from "@/hooks/use-subscription-templates"
 import { cn } from "@/lib/utils"
+import type { Schema } from "@carteira/db"
+import { useQuery, useZero } from "@rocicorp/zero/react"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { useState } from "react"
 
@@ -14,7 +16,9 @@ interface TypeSelectProps {
 export function TypeSelect({ onSelect, value }: TypeSelectProps) {
   const [open, setOpen] = useState(false)
   const [inputValue, setInputValue] = useState("")
-  const { templates, isLoading } = querySubscriptionTemplates()
+  const zero = useZero<Schema>()
+  const templatesQuery = querySubscriptionTemplates(zero)
+  const [templates] = useQuery(templatesQuery)
 
   // Filtra apenas templates aprovados e pega tipos únicos
   const approvedTypes = templates
