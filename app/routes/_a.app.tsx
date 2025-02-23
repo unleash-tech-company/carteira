@@ -1,9 +1,12 @@
 import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/empty-state"
+import { Skeleton } from "@/components/ui/skeleton"
 import { TypographyH1, TypographyH2, TypographyP } from "@/components/ui/typography"
 import type { Schema } from "@/db/schema"
-import { cn, TODO } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { useQuery, useZero } from "@rocicorp/zero/react"
-import { Link } from "react-router"
+import { DollarSign, Share2, Wallet } from "lucide-react"
+import { Link, useNavigate } from "react-router"
 
 export default function ProtectedPage() {
   return (
@@ -15,14 +18,39 @@ export default function ProtectedPage() {
 }
 
 const useSubscriptionLists = () => {
-  TODO("Tem que filtrar isso aqui por userID")
   const z = useZero<Schema>()
   const [subscriptions, subscriptionDetails] = useQuery(z.query.subscription)
   const isLoading = subscriptionDetails.type !== "complete"
   return { subscriptions, isLoading }
 }
 
+function SubscriptionListSkeleton() {
+  return (
+    <div className={cn("grid grid-cols-1 gap-4", "sm:grid-cols-2", "lg:grid-cols-3")}>
+      {[1, 2, 3].map((i) => (
+        <div key={i} className={cn("flex flex-col", "p-6 space-y-4", "bg-card rounded-lg border", "animate-pulse")}>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+
+          <div className={cn("flex justify-end", "pt-4 mt-auto")}>
+            <Skeleton className="h-8 w-20" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function SubscriptionList() {
+  const { isLoading } = useSubscriptionLists()
+
   return (
     <div className={cn("space-y-4", "p-4")}>
       <div className={cn("flex items-center", "justify-between")}>
@@ -31,12 +59,13 @@ export function SubscriptionList() {
           <Button variant="outline">Adicionar Assinatura</Button>
         </Link>
       </div>
-      <SubscriptionList.MySubscriptions />
+      {isLoading ? <SubscriptionListSkeleton /> : <SubscriptionList.MySubscriptions />}
     </div>
   )
 }
 
 SubscriptionList.MySubscriptions = () => {
+  const navigate = useNavigate()
   const z = useZero<Schema>()
   const { subscriptions, isLoading } = useSubscriptionLists()
   const handleDeleteSubscription = (id: string) => {
@@ -46,8 +75,18 @@ SubscriptionList.MySubscriptions = () => {
   return (
     <>
       {subscriptions.length === 0 ? (
-        <div className={cn("flex flex-col items-center justify-center", "p-8 rounded-lg", "bg-muted/50")}>
-          <TypographyP>Nenhuma assinatura encontrada.</TypographyP>
+        <div className="flex justify-center">
+          <EmptyState
+            title="Nenhuma assinatura encontrada"
+            description="Adicione uma assinatura para começar a gerenciar suas assinaturas compartilhadas e economize dinheiro dividindo com amigos."
+            icons={[DollarSign, Share2, Wallet]}
+            action={{
+              label: "Adicionar Assinatura",
+              onClick: () => {
+                navigate("/app/subscriptions/new")
+              },
+            }}
+          />
         </div>
       ) : (
         <div className={cn("grid grid-cols-1 gap-4", "sm:grid-cols-2", "lg:grid-cols-3")}>
