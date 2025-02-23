@@ -6,7 +6,7 @@ import type { Schema } from "@/db/schema"
 import { cn } from "@/lib/utils"
 import { useQuery, useZero } from "@rocicorp/zero/react"
 import { DollarSign, Share2, Wallet } from "lucide-react"
-import { Link, useNavigate } from "react-router"
+import { useNavigate } from "react-router"
 
 export default function ProtectedPage() {
   return (
@@ -55,9 +55,6 @@ export function SubscriptionList() {
     <div className={cn("space-y-4", "p-4")}>
       <div className={cn("flex items-center", "justify-between")}>
         <TypographyH2>Suas Assinaturas</TypographyH2>
-        <Link to="/app/subscriptions/new">
-          <Button variant="outline">Adicionar Assinatura</Button>
-        </Link>
       </div>
       {isLoading ? <SubscriptionListSkeleton /> : <SubscriptionList.MySubscriptions />}
     </div>

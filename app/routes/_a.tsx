@@ -1,3 +1,4 @@
+import { Header } from "@/components/ui/header"
 import { schema } from "@/db/schema"
 import { getAuth } from "@clerk/react-router/ssr.server"
 import { Zero } from "@rocicorp/zero"
@@ -32,6 +33,7 @@ export default function ProtectedLayout() {
   })
   return (
     <ZeroProvider zero={zeroClient}>
+      <Header />
       <Outlet />
     </ZeroProvider>
   )
