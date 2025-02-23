@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { useSubscriptionTemplates } from "@/hooks/use-subscription-templates"
+import { querySubscriptionTemplates } from "@/hooks/use-subscription-templates"
 import { cn } from "@/lib/utils"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { useState } from "react"
@@ -14,7 +14,7 @@ interface TypeSelectProps {
 export function TypeSelect({ onSelect, value }: TypeSelectProps) {
   const [open, setOpen] = useState(false)
   const [inputValue, setInputValue] = useState("")
-  const { templates, isLoading } = useSubscriptionTemplates()
+  const { templates, isLoading } = querySubscriptionTemplates()
 
   // Filtra apenas templates aprovados e pega tipos únicos
   const approvedTypes = templates

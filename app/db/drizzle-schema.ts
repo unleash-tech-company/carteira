@@ -1,14 +1,35 @@
 import { relations } from "drizzle-orm"
 import { boolean, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core"
-import { createSelectSchema } from "drizzle-zod"
+import { createInsertSchema } from "drizzle-zod"
 
+const timeStampColumns = {
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
 })
 
+export const subscription = pgTable("subscription", {
+  ...timeStampColumns,
+  id: text("id").primaryKey(),
+  ownerId: text("owner_id").notNull(),
+  templateId: text("template_id").references(() => subscriptionTemplate.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type", { enum: ["private", "public"] })
+    .notNull()
+    .default("private"),
+  maxMembers: integer("max_members").notNull(),
+  princeInCents: integer("prince_in_cents").notNull(),
+  renewalDay: integer("renewal_day").notNull(),
+  status: text("status").notNull().default("active"),
+})
+
 export const subscriptionTemplate = pgTable("subscription_template", {
+  ...timeStampColumns,
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
@@ -22,38 +43,19 @@ export const subscriptionTemplate = pgTable("subscription_template", {
   provider: text("provider").notNull(), // e.g., "Netflix", "HBO", "Spotify"
   planName: text("plan_name"), // e.g., "Premium", "Basic", "Family"
   approved: boolean("approved").notNull().default(false),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
 
-export const subscription = pgTable("subscription", {
+export const subscriptionAccount = pgTable("subscription_account", {
+  ...timeStampColumns,
   id: text("id").primaryKey(),
-  ownerId: text("owner_id").notNull(),
-  templateId: text("template_id").references(() => subscriptionTemplate.id),
-  name: text("name").notNull(),
-  description: text("description"),
-  type: text("type", { enum: ["private", "public"] })
-    .notNull()
-    .default("private"),
-  maxMembers: integer("max_members").notNull(),
-  princeInCents: integer("prince_in_cents").notNull(),
-  renewalDay: integer("renewal_day").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  status: text("status").notNull().default("active"),
+  subscriptionId: text("subscription_id").references(() => subscription.id),
+  accountUserName: text("account_user_name").notNull(),
+  encryptedAccountPassword: text("encrypted_account_password").notNull(),
 })
 
-export const subscriptionSchema = createSelectSchema(subscription)
-
-export const subscriptionPassword = pgTable("subscription_password", {
-  subscriptionId: text("subscription_id")
-    .notNull()
-    .references(() => subscription.id, {
-      onDelete: "cascade",
-    })
-    .primaryKey(),
-  encryptedPassword: text("encrypted_password").notNull(),
-})
+export const subscriptionInsertSchema = createInsertSchema(subscription)
+export const subscriptionTemplateInsertSchema = createInsertSchema(subscriptionTemplate)
+export const subscriptionAccountInsertSchema = createInsertSchema(subscriptionAccount)
 
 export const usersAllowedInASubscription = pgTable("subscription_user", {
   id: text("id").primaryKey(),
@@ -67,9 +69,9 @@ export const usersAllowedInASubscription = pgTable("subscription_user", {
 })
 
 export const subscriptionRelations = relations(subscription, ({ one }) => ({
-  password: one(subscriptionPassword, {
+  account: one(subscriptionAccount, {
     fields: [subscription.id],
-    references: [subscriptionPassword.subscriptionId],
+    references: [subscriptionAccount.subscriptionId],
   }),
   template: one(subscriptionTemplate, {
     fields: [subscription.templateId],

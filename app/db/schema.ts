@@ -33,9 +33,13 @@ export const schema = createZeroSchema(drizzleSchema, {
       createdAt: true,
       updatedAt: true,
     },
-    subscriptionPassword: {
+    subscriptionAccount: {
+      id: true,
       subscriptionId: true,
-      encryptedPassword: true,
+      accountUserName: true,
+      encryptedAccountPassword: true,
+      createdAt: true,
+      updatedAt: true,
     },
     usersAllowedInASubscription: {
       id: true,
@@ -69,12 +73,12 @@ export const schema = createZeroSchema(drizzleSchema, {
 export type Schema = typeof schema
 type TableName = keyof Schema["tables"]
 type PermissionRule<TTable extends TableName> = (authData: AuthData, eb: ExpressionBuilder<Schema, TTable>) => Condition
-export type Subscription = Row<typeof schema.tables.subscription>
 
 // #region Types
 
+export type Subscription = Row<typeof schema.tables.subscription>
 export type SubscriptionTemplate = Row<typeof schema.tables.subscriptionTemplate>
-
+export type SubscriptionAccount = Row<typeof schema.tables.subscriptionAccount>
 // #endregion
 
 // The contents of your decoded JWT.

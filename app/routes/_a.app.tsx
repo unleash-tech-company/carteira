@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Skeleton } from "@/components/ui/skeleton"
-import { TypographyH1, TypographyH2, TypographyMuted, TypographyP } from "@/components/ui/typography"
+import { TypographyH2, TypographyMuted, TypographyP } from "@/components/ui/typography"
 import type { Schema } from "@/db/schema"
 import { cn } from "@/lib/utils"
 import { useQuery, useZero } from "@rocicorp/zero/react"
@@ -14,7 +14,6 @@ import { match } from "ts-pattern"
 export default function ProtectedPage() {
   return (
     <main className="container mx-auto py-8">
-      <TypographyH1>Gerenciamento de Assinaturas</TypographyH1>
       <SubscriptionList />
     </main>
   )

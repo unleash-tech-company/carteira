@@ -1,13 +1,6 @@
 import type { Schema } from "@/db/schema"
-import { useQuery, useZero } from "@rocicorp/zero/react"
+import type { Zero } from "@rocicorp/zero"
 
-export function useSubscriptionTemplates() {
-  const z = useZero<Schema>()
-  const [templates, templateDetails] = useQuery(z.query.subscriptionTemplate.where((q) => q.cmp("approved", true)))
-  const isLoading = templateDetails.type !== "complete"
-
-  return {
-    templates,
-    isLoading,
-  }
+export function querySubscriptionTemplates(z: Zero<Schema>) {
+  return z.query.subscriptionTemplate.where((q) => q.cmp("approved", true))
 }

@@ -5,9 +5,11 @@ import { ControlledSelect, type SelectOption } from "@/components/ui/form/contro
 import { ControlledToggleGroup, type ToggleOption } from "@/components/ui/form/controlled-toggle-group"
 import { TypographyH2 } from "@/components/ui/typography"
 import type { Schema, SubscriptionTemplate } from "@/db/schema"
-import { useSubscriptionTemplates } from "@/hooks/use-subscription-templates"
-import { createSubscription } from "@/service/subscriptions"
-import { useZero } from "@rocicorp/zero/react"
+import { querySubscriptionTemplates } from "@/hooks/use-subscription-templates"
+import { formatCurrency } from "@/lib/currency"
+import { SubscriptionService } from "@/service/subscriptions"
+import { useUser } from "@clerk/react-router"
+import { useQuery, useZero } from "@rocicorp/zero/react"
 import { AnimatePresence, motion } from "framer-motion"
 import { KeyRound, Link, Users } from "lucide-react"
 import { useState } from "react"
@@ -17,19 +19,11 @@ import { toast } from "sonner"
 import { match } from "ts-pattern"
 import * as z from "zod"
 
-export type FormNewSubscription = {
-  templateId: string | null
-  name: string
-  description: string
-  maxMembers: string
-  price: string
-  dueDate: string
-  hasPassword: boolean
-  password?: string
-}
+export type FormNewSubscription = { local: { hasPassword: boolean } } & SubscriptionService.CreateNewSubscriptionParams
 export default function NovaAssinatura() {
   const navigate = useNavigate()
   const z = useZero<Schema>()
+  const { user } = useUser()
   const [currentStep, setCurrentStep] = useState<FormStep>(FormStep.SELECT_TEMPLATE)
   const [showSuccess, setShowSuccess] = useState(false)
   const [subscriptionId, setSubscriptionId] = useState("")
@@ -37,17 +31,35 @@ export default function NovaAssinatura() {
 
   const methods = useForm<FormNewSubscription>({
     defaultValues: {
-      templateId: null,
-      name: "",
-      description: "",
-      maxMembers: "",
-      price: "",
-      dueDate: "5",
-      hasPassword: true,
-      password: "",
+      userId: user?.id ?? "",
+      subscription: {
+        id: "",
+        ownerId: "",
+        templateId: null,
+        name: "",
+        description: "",
+        renewalDay: 5,
+        maxMembers: 1,
+        status: "active",
+        type: "",
+      },
+      subscriptionAccount: {
+        id: "",
+        subscriptionId: "",
+        accountUserName: "",
+        encryptedAccountPassword: "",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+      subscriptionTemplate: {
+        id: "",
+        name: "",
+        description: "",
+        type: "",
+        category: "",
+      },
     },
   })
-
   const nextStep = (values: FormNewSubscription) => {
     const config = formStepConfig[currentStep]
     if (config.nextStep) {
@@ -68,31 +80,27 @@ export default function NovaAssinatura() {
   }
 
   async function onSubmit(values: FormNewSubscription) {
-    try {
-      const uuid = await createSubscription(z, {
-        ...values,
-        password: values.hasPassword ? values.password : undefined,
-      })
-      if (!uuid) {
-        throw new Error("Erro ao criar assinatura")
-      }
-      setSubscriptionId(uuid)
-      setShowSuccess(true)
-    } catch (error) {
-      console.error(error)
+    const [result, err] = await SubscriptionService.createSubscription(z, values)
+
+    if (err) {
+      console.error(err)
       toast.error("Erro ao criar assinatura", {
         description: "Ocorreu um erro ao criar sua assinatura. Por favor, tente novamente.",
       })
+      return
     }
+
+    setSubscriptionId(result.subscriptionId)
+    setShowSuccess(true)
   }
 
   if (showSuccess) {
     return (
       <AnimatePresence mode="wait">
         <SuccessScreen
-          subscriptionName={methods.getValues("name")}
+          subscriptionName={methods.getValues("subscription.name")}
           subscriptionId={subscriptionId}
-          name={methods.getValues("name")}
+          name={methods.getValues("subscription.name")}
           onBackToHome={() => navigate("/app")}
         />
       </AnimatePresence>
@@ -219,39 +227,40 @@ interface SelectTemplateStepProps {
 
 function SelectTemplateStep({ setSelectedTemplateIsApproved }: SelectTemplateStepProps) {
   const form = useFormContext<FormNewSubscription>()
-  const { templates, isLoading } = useSubscriptionTemplates()
+  const zero = useZero<Schema>()
   const [inputValue, setInputValue] = useState("")
+  const selectTemplatesQuery = querySubscriptionTemplates(zero).where("name", "ILIKE", `%${inputValue}%`)
+
+  const [templates, optionsTemplates] = useQuery(selectTemplatesQuery)
+  const isLoadingTemplates = optionsTemplates.type !== "complete"
 
   const handleSelect = (selectedValue: SubscriptionTemplate | null) => {
     const matchedTemplate = templates?.find((template) => template.id === selectedValue?.id)
 
     if (matchedTemplate) {
-      form.setValue("templateId", matchedTemplate.id)
-      form.setValue("name", matchedTemplate.name)
-      form.setValue("description", matchedTemplate.description ?? "")
-      form.setValue("maxMembers", matchedTemplate.recommendedMaxMembers.toString())
+      form.setValue("subscriptionTemplate.id", matchedTemplate.id)
+      form.setValue("subscription.name", matchedTemplate.name)
+      form.setValue("subscription.description", matchedTemplate.description ?? "")
+      form.setValue("subscription.maxMembers", matchedTemplate.recommendedMaxMembers)
       const totalPrice = matchedTemplate.recommendedPriceInCents * matchedTemplate.recommendedMaxMembers
-      form.setValue("price", (totalPrice / 100).toFixed(2))
+      form.setValue("subscription.princeInCents", totalPrice)
       setSelectedTemplateIsApproved(matchedTemplate.approved ?? false)
     } else if (selectedValue) {
-      form.setValue("templateId", selectedValue.id)
-      form.setValue("name", selectedValue.name)
-      form.setValue("description", "")
-      form.setValue("maxMembers", "1")
-      form.setValue("price", "")
+      form.setValue("subscriptionTemplate.id", selectedValue.id)
+      form.setValue("subscription.name", selectedValue.name)
+      form.setValue("subscription.description", "")
+      form.setValue("subscription.maxMembers", 1)
+      form.setValue("subscription.princeInCents", 0)
       setSelectedTemplateIsApproved(false)
     }
   }
 
-  const options: SelectOption<SubscriptionTemplate | null>[] = [
-    ...(
-      templates?.map((template) => ({
-        value: template,
-        label: template.name,
-        description: template.description ?? undefined,
-      })) ?? []
-    ).filter((option) => option.label.toLowerCase().includes(inputValue.toLowerCase())),
-  ]
+  const options: SelectOption<SubscriptionTemplate | null>[] =
+    templates?.map((template) => ({
+      value: template,
+      label: template.name,
+      description: template.description ?? undefined,
+    })) ?? []
 
   const handleCreate = (value: string): SelectOption<SubscriptionTemplate> => {
     const customTemplate: SubscriptionTemplate = {
@@ -282,7 +291,7 @@ function SelectTemplateStep({ setSelectedTemplateIsApproved }: SelectTemplateSte
       options={options}
       onSelect={handleSelect}
       eq={(a, b) => a?.id === b?.id}
-      placeholder={isLoading ? "Carregando templates..." : "Selecione um template..."}
+      placeholder={isLoadingTemplates ? "Carregando templates..." : "Selecione um template..."}
       searchPlaceholder="Buscar ou criar template..."
       schema={z.object({
         id: z.string(),
@@ -290,7 +299,7 @@ function SelectTemplateStep({ setSelectedTemplateIsApproved }: SelectTemplateSte
       })}
       emptyMessage="Nenhum template encontrado."
       onSearch={setInputValue}
-      disabled={isLoading}
+      disabled={isLoadingTemplates}
       onCreate={handleCreate}
       createOptionLabel={(value) => `Criar "${value}"`}
     />
@@ -361,7 +370,7 @@ function PaymentDetailsStep() {
         label="Dia do vencimento do pagamento"
       />
 
-      {form.watch("maxMembers") && form.watch("price") && (
+      {form.watch("subscription.maxMembers") && form.watch("subscription.princeInCents") && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -373,14 +382,9 @@ function PaymentDetailsStep() {
               Cada pessoa vai pagar:
             </span>
             <span className="font-medium text-primary">
-              R${" "}
-              {(Number(form.watch("price").replace(/\D/g, "")) / 100 / Number(form.watch("maxMembers"))).toLocaleString(
-                "pt-BR",
-                {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                }
-              )}
+              {formatCurrency({
+                valueInCents: form.watch("subscription.princeInCents"),
+              })}
             </span>
           </div>
         </motion.div>
@@ -411,16 +415,16 @@ function PasswordStep() {
     <div className="space-y-4">
       <ControlledToggleGroup
         schema={z.boolean()}
-        name="hasPassword"
+        name="local.hasPassword"
         options={options}
         onSelect={(value) => {
           if (!value) {
-            form.setValue("password", undefined)
+            form.setValue("subscriptionAccount.encryptedAccountPassword", "")
           }
         }}
       />
 
-      {form.watch("hasPassword") && (
+      {form.watch("local.hasPassword") && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
