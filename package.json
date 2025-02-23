@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "bun@1.1.19",
   "scripts": {
-    "dev": "turbo dev",
+    "dev": "dotenv -e .env -- turbo dev",
     "tscheck": "turbo tscheck",
     "dev:ui": "react-router dev",
     "dev:zero": "zero-cache-dev -p app/db/schema.ts",
