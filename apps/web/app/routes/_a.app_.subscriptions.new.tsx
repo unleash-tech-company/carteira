@@ -6,7 +6,6 @@ import { ControlledToggleGroup, type ToggleOption } from "@/components/ui/form/c
 import { TypographyH2 } from "@/components/ui/typography"
 import { querySubscriptionTemplates } from "@/hooks/use-subscription-templates"
 import { formatCurrency } from "@/lib/currency"
-import { TODO } from "@/lib/utils"
 import { SubscriptionService } from "@/service/subscriptions"
 import type { Schema, SubscriptionTemplate } from "@carteira/db"
 import { useUser } from "@clerk/react-router"
@@ -23,12 +22,9 @@ import * as z from "zod"
 export type FormNewSubscription = { local: { hasPassword: boolean } } & SubscriptionService.CreateNewSubscriptionParams
 export default function NovaAssinatura() {
   const navigate = useNavigate()
-  const z = useZero<Schema>()
   const { user } = useUser()
   const [currentStep, setCurrentStep] = useState<FormStep>(FormStep.SELECT_TEMPLATE)
-  const [showSuccess, setShowSuccess] = useState(false)
   const [subscriptionId, setSubscriptionId] = useState("")
-  const [selectedTemplateIsApproved, setSelectedTemplateIsApproved] = useState(false)
 
   const methods = useForm<FormNewSubscription>({
     defaultValues: {
@@ -42,7 +38,7 @@ export default function NovaAssinatura() {
         renewalDay: 5,
         maxMembers: 1,
         status: "active",
-        type: "",
+        type: "private",
       },
       subscriptionAccount: {
         id: "",
@@ -102,7 +98,7 @@ export default function NovaAssinatura() {
                   >
                     {match(currentStep)
                       .with(FormStep.SELECT_TEMPLATE, () => (
-                        <SelectTemplateStep setSelectedTemplateIsApproved={setSelectedTemplateIsApproved} />
+                        <SelectTemplateStep currentStep={currentStep} setCurrentStep={setCurrentStep} />
                       ))
                       .with(FormStep.CUSTOM_DETAILS, () => (
                         <CustomDetailsStep currentStep={currentStep} setCurrentStep={setCurrentStep} />
@@ -111,7 +107,11 @@ export default function NovaAssinatura() {
                         <PaymentDetailsStep currentStep={currentStep} setCurrentStep={setCurrentStep} />
                       ))
                       .with(FormStep.PASSWORD, () => (
-                        <PasswordStep currentStep={currentStep} setCurrentStep={setCurrentStep} />
+                        <PasswordStep
+                          currentStep={currentStep}
+                          setCurrentStep={setCurrentStep}
+                          setSubscriptionId={setSubscriptionId}
+                        />
                       ))
                       .with(FormStep.SUCCESS, () => (
                         <SuccessScreen
@@ -169,15 +169,19 @@ const formStepConfig: Record<FormStep, StepConfig> = {
   },
 } as const
 
-interface SelectTemplateStepProps {
-  setSelectedTemplateIsApproved: (value: boolean) => void
-}
-
-function SelectTemplateStep({ setSelectedTemplateIsApproved }: SelectTemplateStepProps) {
+function SelectTemplateStep(p: { currentStep: FormStep; setCurrentStep: (step: FormStep) => void }) {
   const form = useFormContext<FormNewSubscription>()
   const zero = useZero<Schema>()
   const [inputValue, setInputValue] = useState("")
   const selectTemplatesQuery = querySubscriptionTemplates(zero).where("name", "ILIKE", `%${inputValue}%`)
+
+  const prevStep = () => {
+    p.setCurrentStep(FormStep.PAYMENT_DETAILS)
+  }
+
+  const onSubmit = (values: FormNewSubscription) => {
+    p.setCurrentStep(FormStep.CUSTOM_DETAILS)
+  }
 
   const [templates, optionsTemplates] = useQuery(selectTemplatesQuery)
   const isLoadingTemplates = optionsTemplates.type !== "complete"
@@ -192,14 +196,12 @@ function SelectTemplateStep({ setSelectedTemplateIsApproved }: SelectTemplateSte
       form.setValue("subscription.maxMembers", matchedTemplate.recommendedMaxMembers)
       const totalPrice = matchedTemplate.recommendedPriceInCents * matchedTemplate.recommendedMaxMembers
       form.setValue("subscription.princeInCents", totalPrice)
-      setSelectedTemplateIsApproved(matchedTemplate.approved ?? false)
     } else if (selectedValue) {
       form.setValue("subscriptionTemplate.id", selectedValue.id)
       form.setValue("subscription.name", selectedValue.name)
       form.setValue("subscription.description", "")
       form.setValue("subscription.maxMembers", 1)
       form.setValue("subscription.princeInCents", 0)
-      setSelectedTemplateIsApproved(false)
     }
   }
 
@@ -234,23 +236,36 @@ function SelectTemplateStep({ setSelectedTemplateIsApproved }: SelectTemplateSte
   }
 
   return (
-    <ControlledSelect
-      name="selectedTemplate"
-      options={options}
-      onSelect={handleSelect}
-      eq={(a, b) => a?.id === b?.id}
-      placeholder={isLoadingTemplates ? "Carregando templates..." : "Selecione um template..."}
-      searchPlaceholder="Buscar ou criar template..."
-      schema={z.object({
-        id: z.string(),
-        name: z.string().min(1, "O nome do template é obrigatório"),
-      })}
-      emptyMessage="Nenhum template encontrado."
-      onSearch={setInputValue}
-      disabled={isLoadingTemplates}
-      onCreate={handleCreate}
-      createOptionLabel={(value) => `Criar "${value}"`}
-    />
+    <>
+      <ControlledSelect
+        name="selectedTemplate"
+        options={options}
+        onSelect={handleSelect}
+        eq={(a, b) => a?.id === b?.id}
+        placeholder={isLoadingTemplates ? "Carregando templates..." : "Selecione um template..."}
+        searchPlaceholder="Buscar ou criar template..."
+        schema={z.object({
+          id: z.string(),
+          name: z.string().min(1, "O nome do template é obrigatório"),
+        })}
+        emptyMessage="Nenhum template encontrado."
+        onSearch={setInputValue}
+        disabled={isLoadingTemplates}
+        onCreate={handleCreate}
+        createOptionLabel={(value) => `Criar "${value}"`}
+      />
+      <div className="flex gap-4 justify-end mt-4">
+        <Button type="button" variant="outline" onClick={prevStep}>
+          Voltar
+        </Button>
+
+        <Button type="button" onClick={form.handleSubmit(onSubmit)}>
+          {match(p.currentStep)
+            .with(FormStep.PASSWORD, () => "Criar Assinatura")
+            .otherwise(() => "Continuar")}
+        </Button>
+      </div>
+    </>
   )
 }
 
@@ -378,15 +393,17 @@ function PaymentDetailsStep(p: { currentStep: FormStep; setCurrentStep: (step: F
   )
 }
 
-function PasswordStep(p: { currentStep: FormStep; setCurrentStep: (step: FormStep) => void }) {
+function PasswordStep(p: {
+  currentStep: FormStep
+  setCurrentStep: (step: FormStep) => void
+  setSubscriptionId: (subscriptionId: string) => void
+}) {
   const zero = useZero<Schema>()
   const form = useFormContext<FormNewSubscription>()
-  const [subscriptionId, setSubscriptionId] = useState("")
   const prevStep = () => {
     p.setCurrentStep(FormStep.PAYMENT_DETAILS)
   }
   async function onSubmit(values: FormNewSubscription) {
-    TODO("Tem que dar um jeito nisso auqi pq não tamo passando o id pra tela de sucesso")
     const [result, err] = await SubscriptionService.createSubscription(zero, values)
 
     if (err) {
@@ -397,7 +414,7 @@ function PasswordStep(p: { currentStep: FormStep; setCurrentStep: (step: FormSte
       return
     }
 
-    setSubscriptionId(result.subscriptionId)
+    p.setSubscriptionId(result.subscriptionId)
   }
 
   const options: ToggleOption<boolean>[] = [

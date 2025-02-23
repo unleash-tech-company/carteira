@@ -27,6 +27,7 @@ export namespace SubscriptionService {
   ): Promise<AppResult<{ subscriptionId: string }, SubscriptionServiceError>> {
     const safeParseSubscription = subscriptionInsertSchema.safeParse(values.subscription)
     if (!safeParseSubscription.success) {
+      console.error(safeParseSubscription.error)
       return err({
         type: "invalid_subscription",
         message: genericErrorMessages,
@@ -34,6 +35,7 @@ export namespace SubscriptionService {
     }
     const safeParseSubscriptionTemplate = subscriptionTemplateInsertSchema.safeParse(values.subscriptionTemplate)
     if (!safeParseSubscriptionTemplate.success) {
+      console.error(safeParseSubscriptionTemplate.error)
       return err({
         type: "invalid_subscription_template",
         message: genericErrorMessages,
@@ -42,6 +44,7 @@ export namespace SubscriptionService {
 
     const safeParseSubscriptionAccount = subscriptionAccountInsertSchema.safeParse(values.subscriptionAccount)
     if (!safeParseSubscriptionAccount.success) {
+      console.error(safeParseSubscriptionAccount.error)
       return err({
         type: "invalid_subscription_account",
         message: genericErrorMessages,
