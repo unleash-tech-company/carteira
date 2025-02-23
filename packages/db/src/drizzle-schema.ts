@@ -27,6 +27,7 @@ export const subscription = pgTable("subscription", {
   renewalDay: integer("renewal_day").notNull(),
   status: text("status").notNull().default("active"),
 })
+export type InsertSubscription = typeof subscription.$inferInsert
 
 export const subscriptionTemplate = pgTable("subscription_template", {
   ...timeStampColumns,

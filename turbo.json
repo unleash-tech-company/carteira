@@ -1,0 +1,22 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "envMode": "loose",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build:package"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "lib/**"]
+    },
+    "dev": {
+      "persistent": true,
+      "cache": false
+    },
+    "tscheck": {
+      "dependsOn": ["^tscheck"]
+    },
+    "tscheck:watch": {
+      "dependsOn": ["^tscheck:watch"],
+      "persistent": true
+    }
+  }
+}
