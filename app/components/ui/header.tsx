@@ -25,10 +25,12 @@ import { Link } from "react-router"
 
 export function Header() {
   const { user } = useUser()
+  const isLoggedIn = user !== null
+  const prefixLoggedIn = isLoggedIn ? "/app" : "/"
   const navigationItems = [
     {
       title: "Home",
-      href: "/",
+      href: prefixLoggedIn,
       description: "",
     },
     {
@@ -94,9 +96,9 @@ export function Header() {
             <NavigationMenuList className="flex justify-start gap-4 flex-row">
               <NavigationMenuItem>
                 <NavigationMenuLink>
-                  <Link to="/">
+                  <Link to={prefixLoggedIn}>
                     <Button variant="ghost" className="font-mono">
-                      carteira.app
+                      dividee.app
                     </Button>
                   </Link>
                 </NavigationMenuLink>
@@ -176,13 +178,13 @@ export function Header() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/dashboard">Dashboard</Link>
+                  <Link to="/app/dashboard">Dashboard</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/perfil">Perfil</Link>
+                  <Link to="/app/profile">Perfil</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/minhas-assinaturas">Minhas Assinaturas</Link>
+                  <Link to="/app/subscriptions">Minhas Assinaturas</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>

@@ -33,7 +33,9 @@ export default function ProtectedLayout() {
   })
   return (
     <ZeroProvider zero={zeroClient}>
-      <Header />
+      <header className="mb-12">
+        <Header />
+      </header>
       <Outlet />
     </ZeroProvider>
   )

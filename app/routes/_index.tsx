@@ -6,10 +6,10 @@ import { Pricing } from "@/components/landing-page/pricing-cards"
 import { ValueProposition } from "@/components/landing-page/value-proposition"
 import { RainbowButton } from "@/components/ui/rainbow-button"
 import { Link } from "react-router"
-import type { Route } from "./+types/landing-page"
+import type { Route } from "./+types/_index"
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Economize AI" }, { name: "description", content: "Economize AI" }]
+  return [{ title: "dividee.app" }, { name: "description", content: "dividee.app" }]
 }
 
 export default function LandingPage() {

@@ -1,12 +1,15 @@
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Skeleton } from "@/components/ui/skeleton"
-import { TypographyH1, TypographyH2, TypographyP } from "@/components/ui/typography"
+import { TypographyH1, TypographyH2, TypographyMuted, TypographyP } from "@/components/ui/typography"
 import type { Schema } from "@/db/schema"
 import { cn } from "@/lib/utils"
 import { useQuery, useZero } from "@rocicorp/zero/react"
-import { DollarSign, Share2, Wallet } from "lucide-react"
+import { Check, CreditCard, DollarSign, Plus, Share2, Users, Wallet } from "lucide-react"
 import { useNavigate } from "react-router"
+import { match } from "ts-pattern"
 
 export default function ProtectedPage() {
   return (
@@ -26,23 +29,21 @@ const useSubscriptionLists = () => {
 
 function SubscriptionListSkeleton() {
   return (
-    <div className={cn("grid grid-cols-1 gap-4", "sm:grid-cols-2", "lg:grid-cols-3")}>
+    <div className={cn("grid gap-4", "grid-cols-1", "sm:grid-cols-2", "lg:grid-cols-3", "xl:grid-cols-4")}>
       {[1, 2, 3].map((i) => (
-        <div key={i} className={cn("flex flex-col", "p-6 space-y-4", "bg-card rounded-lg border", "animate-pulse")}>
-          <div className="space-y-2">
+        <Card key={i} className="animate-pulse">
+          <CardHeader className="space-y-2">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-4 w-48" />
-          </div>
-
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-4 w-40" />
-          </div>
-
-          <div className={cn("flex justify-end", "pt-4 mt-auto")}>
-            <Skeleton className="h-8 w-20" />
-          </div>
-        </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+            <Skeleton className="h-8 w-full" />
+          </CardContent>
+        </Card>
       ))}
     </div>
   )
@@ -50,11 +51,24 @@ function SubscriptionListSkeleton() {
 
 export function SubscriptionList() {
   const { isLoading } = useSubscriptionLists()
+  const navigate = useNavigate()
 
   return (
-    <div className={cn("space-y-4", "p-4")}>
-      <div className={cn("flex items-center", "justify-between")}>
-        <TypographyH2>Suas Assinaturas</TypographyH2>
+    <div className={cn("space-y-6")}>
+      <div className={cn("flex items-center gap-3")}>
+        <TypographyH2>Minhas Assinaturas</TypographyH2>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => navigate("/app/subscriptions/new")}>
+              Criar Nova Assinatura
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       {isLoading ? <SubscriptionListSkeleton /> : <SubscriptionList.MySubscriptions />}
     </div>
@@ -65,9 +79,6 @@ SubscriptionList.MySubscriptions = () => {
   const navigate = useNavigate()
   const z = useZero<Schema>()
   const { subscriptions, isLoading } = useSubscriptionLists()
-  const handleDeleteSubscription = (id: string) => {
-    z.mutate.subscription.delete({ id })
-  }
 
   return (
     <>
@@ -86,33 +97,48 @@ SubscriptionList.MySubscriptions = () => {
           />
         </div>
       ) : (
-        <div className={cn("grid grid-cols-1 gap-4", "sm:grid-cols-2", "lg:grid-cols-3")}>
+        <div className={cn("grid gap-4", "grid-cols-1", "sm:grid-cols-2", "lg:grid-cols-3", "xl:grid-cols-4")}>
           {subscriptions.map((subscription) => (
-            <div
+            <Card
               key={subscription.id}
-              className={cn(
-                "flex flex-col",
-                "p-6 space-y-4",
-                "bg-card rounded-lg border",
-                "hover:shadow-md transition-shadow"
-              )}
+              className="group hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate(`/app/subscriptions/${subscription.id}`)}
             >
-              <div className="space-y-2">
-                <TypographyP className="font-medium">ID da Assinatura</TypographyP>
-                <TypographyP className="text-muted-foreground">{subscription.id}</TypographyP>
-              </div>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5" />
+                    <span>{subscription.name}</span>
+                  </div>
+                  {match(subscription.templateId)
+                    .with(null, () => null)
+                    .otherwise(() => (
+                      <Check className="w-5 h-5 text-green-500" />
+                    ))}
+                </CardTitle>
+                <CardDescription>{subscription.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <TypographyP className="text-sm text-muted-foreground">Membros</TypographyP>
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-muted-foreground" />
+                    <span>
+                      {/* TODO: Implementar contagem de membros */}0 / {subscription.maxMembers}
+                    </span>
+                  </div>
+                </div>
 
-              <div className="space-y-2">
-                <TypographyP className="font-medium">Proprietário</TypographyP>
-                <TypographyP className="text-muted-foreground">{subscription.ownerId}</TypographyP>
-              </div>
+                <div className="flex items-center justify-between">
+                  <TypographyP className="text-sm text-muted-foreground">Valor</TypographyP>
+                  <TypographyP className="text-sm">R$ {(subscription.princeInCents / 100).toFixed(2)}</TypographyP>
+                </div>
 
-              <div className={cn("flex justify-end", "pt-4 mt-auto")}>
-                <Button variant="destructive" size="sm" onClick={() => handleDeleteSubscription(subscription.id)}>
-                  Deletar
-                </Button>
-              </div>
-            </div>
+                {!subscription.templateId && (
+                  <TypographyMuted className="text-xs">Aguardando aprovação do template</TypographyMuted>
+                )}
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}

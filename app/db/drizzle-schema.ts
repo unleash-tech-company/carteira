@@ -5,6 +5,7 @@ import { createSelectSchema } from "drizzle-zod"
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
+  name: text("name").notNull(),
 })
 
 export const subscriptionTemplate = pgTable("subscription_template", {

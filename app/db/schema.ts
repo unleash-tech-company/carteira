@@ -44,6 +44,7 @@ export const schema = createZeroSchema(drizzleSchema, {
     },
     user: {
       id: true,
+      name: true,
       email: true,
     },
   },
