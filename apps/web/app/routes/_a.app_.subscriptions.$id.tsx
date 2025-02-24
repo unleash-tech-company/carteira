@@ -24,7 +24,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TypographyH1, TypographyH2, TypographyH3, TypographyMuted } from "@/components/ui/typography"
 import { formatCurrency } from "@/lib/currency"
-import { TODO } from "@/lib/utils"
 import { subscriptionInsertSchema, type Schema, type Subscription } from "@carteira/db"
 import { useUser } from "@clerk/react-router"
 import { useQuery, useZero } from "@rocicorp/zero/react"
@@ -484,21 +483,18 @@ function SettingsTab() {
                 label="Nome"
                 placeholder="Nome da assinatura"
                 schema={settingsSchema.shape.name}
-                disabled={true}
               />
 
               <ControlledInput
                 name="description"
                 label="Descrição"
                 placeholder="Descrição da assinatura"
-                disabled={true}
                 schema={settingsSchema.shape.description}
               />
 
               <ControlledInput
                 name="maxMembers"
                 label="Número máximo de membros"
-                disabled={true}
                 type="number"
                 min={1}
                 max={16}
@@ -507,7 +503,6 @@ function SettingsTab() {
               />
 
               <ControlledInput
-                disabled={true}
                 name="princeInCents"
                 label="Valor total"
                 placeholder="R$ 0,00"
@@ -521,7 +516,6 @@ function SettingsTab() {
               />
 
               <ControlledInput
-                disabled={true}
                 name="renewalDay"
                 label="Dia de renovação"
                 type="number"
@@ -531,8 +525,7 @@ function SettingsTab() {
                 schema={settingsSchema.shape.renewalDay}
               />
 
-              {TODO("fixar", "https://discord.com/channels/830183651022471199/1288232858795769917/1343391343069888513")}
-              {/* <Button type="submit">Salvar Alterações</Button> */}
+              <Button type="submit">Salvar Alterações</Button>
             </form>
           </FormProvider>
         </div>
