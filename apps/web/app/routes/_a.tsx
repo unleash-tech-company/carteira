@@ -7,7 +7,6 @@ import React from "react"
 import { Outlet, redirect, useLoaderData } from "react-router"
 import type { Route } from "./+types/_a"
 
-// _a means = _auth
 export async function loader(args: Route.LoaderArgs) {
   const auth = await getAuth(args)
   const userId = auth.userId ?? "anon"

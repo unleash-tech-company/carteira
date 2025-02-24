@@ -1,4 +1,4 @@
-import { err, fromPromise, ok, type AppResult } from "@/lib/result"
+import { err, ok, type AppResult } from "@/lib/result"
 import type { Schema, Subscription, SubscriptionAccount, SubscriptionTemplate } from "@carteira/db"
 import {
   subscriptionAccountInsertSchema,
@@ -6,6 +6,7 @@ import {
   subscriptionTemplateInsertSchema,
 } from "@carteira/db"
 import type { Zero } from "@rocicorp/zero"
+import { v4 } from "uuid"
 
 type SubscriptionServiceError = {
   type: "invalid_subscription" | "invalid_subscription_template" | "invalid_subscription_account" | "invalid_insert"
@@ -18,14 +19,15 @@ export namespace SubscriptionService {
     subscription: Subscription
     subscriptionAccount: SubscriptionAccount
     subscriptionTemplate: SubscriptionTemplate
-    userId: string
   }
 
   export async function createSubscription(
     z: Zero<Schema>,
+    userId: string,
     values: CreateNewSubscriptionParams
   ): Promise<AppResult<{ subscriptionId: string }, SubscriptionServiceError>> {
     const safeParseSubscription = subscriptionInsertSchema.safeParse(values.subscription)
+
     if (!safeParseSubscription.success) {
       console.error(safeParseSubscription.error)
       return err({
@@ -33,9 +35,13 @@ export namespace SubscriptionService {
         message: genericErrorMessages,
       })
     }
+    const [maybeSubscriptionTemplate] = await z.query.subscriptionTemplate
+      .where("id", "=", values.subscriptionTemplate.id)
+      .limit(1)
+      .run()
+
     const safeParseSubscriptionTemplate = subscriptionTemplateInsertSchema.safeParse(values.subscriptionTemplate)
     if (!safeParseSubscriptionTemplate.success) {
-      console.error(safeParseSubscriptionTemplate.error)
       return err({
         type: "invalid_subscription_template",
         message: genericErrorMessages,
@@ -44,60 +50,44 @@ export namespace SubscriptionService {
 
     const safeParseSubscriptionAccount = subscriptionAccountInsertSchema.safeParse(values.subscriptionAccount)
     if (!safeParseSubscriptionAccount.success) {
-      console.error(safeParseSubscriptionAccount.error)
       return err({
         type: "invalid_subscription_account",
         message: genericErrorMessages,
       })
     }
 
-    const insertResult = await fromPromise(
-      z.mutateBatch((tx) => {
-        tx.subscription.insert({
-          ...safeParseSubscription.data,
-          createdAt: new Date().getTime(),
-          updatedAt: new Date().getTime(),
-        })
-        tx.subscriptionAccount.insert({
-          ...safeParseSubscriptionAccount.data,
-          subscriptionId: safeParseSubscription.data.id,
-          createdAt: new Date().getTime(),
-          updatedAt: new Date().getTime(),
-        })
-      }),
-      (error) => {
-        console.error(error)
-        return {
-          type: "invalid_insert",
-          message: genericErrorMessages,
-        }
-      }
-    )
+    const subscription: Subscription = {
+      ...safeParseSubscription.data,
+      createdAt: new Date().getTime(),
+      updatedAt: new Date().getTime(),
+      ownerId: userId,
+      description: safeParseSubscription.data.description ?? null,
+      type: safeParseSubscription.data.type ?? null,
+      status: safeParseSubscription.data.status ?? null,
+      id: v4(),
+    }
+    const subscriptionAccount: SubscriptionAccount = {
+      ...safeParseSubscriptionAccount.data,
+      createdAt: new Date().getTime(),
+      updatedAt: new Date().getTime(),
+      subscriptionId: subscription.id,
+      accountUserName: safeParseSubscriptionAccount.data.accountUserName ?? null,
+      encryptedAccountPassword: safeParseSubscriptionAccount.data.encryptedAccountPassword ?? null,
+      id: v4(),
+    }
 
-    console.log(insertResult)
+    await z.mutateBatch(async (tx) => {
+      await tx.subscription.insert(subscription)
+      await tx.subscriptionAccount.insert(subscriptionAccount)
+    })
+    const checkIfReallyInserted = z.query.subscription.where("id", "=", subscription.id).limit(1).run()
+    if (checkIfReallyInserted.length === 0) {
+      return err({
+        type: "invalid_insert",
+        message: genericErrorMessages,
+      })
+    }
 
-    // try {
-    //   const uuid = uuidv4()
-    //   const data = {
-    //     id: uuid,
-    //     ownerId: z.userID || "",
-    //     templateId: values.templateId,
-    //     name: values.name,
-    //     description: values.description,
-    //     type: "private",
-    //     maxMembers: Number(values.maxMembers),
-    //     princeInCents: totalPriceInCents,
-    //     renewalDay: dueDay,
-    //     status: "active",
-    //   }
-    //   await z.mutate.subscription.insert(data)
-    //   return uuid
-    // } catch (error) {
-    //   console.error(error)
-    //   toast.error("Erro ao criar assinatura", {
-    //     description: "Ocorreu um erro ao criar sua assinatura. Por favor, tente novamente.",
-    //   })
-    // }
-    return ok({ subscriptionId: "123" })
+    return ok({ subscriptionId: subscription.id })
   }
 }

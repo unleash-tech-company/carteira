@@ -3,13 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Skeleton } from "@/components/ui/skeleton"
-import { TypographyH2, TypographyMuted, TypographyP } from "@/components/ui/typography"
+import { TypographyH2, TypographyP } from "@/components/ui/typography"
 import { cn } from "@/lib/utils"
 import type { Schema } from "@carteira/db"
 import { useQuery, useZero } from "@rocicorp/zero/react"
-import { Check, CreditCard, DollarSign, Plus, Share2, Users, Wallet } from "lucide-react"
+import { CreditCard, DollarSign, Plus, Share2, Users, Wallet } from "lucide-react"
 import { useNavigate } from "react-router"
-import { match } from "ts-pattern"
 
 export default function ProtectedPage() {
   return (
@@ -77,7 +76,7 @@ export function SubscriptionList() {
 SubscriptionList.MySubscriptions = () => {
   const navigate = useNavigate()
   const z = useZero<Schema>()
-  const { subscriptions, isLoading } = useSubscriptionLists()
+  const { subscriptions } = useSubscriptionLists()
 
   return (
     <>
@@ -109,11 +108,6 @@ SubscriptionList.MySubscriptions = () => {
                     <CreditCard className="w-5 h-5" />
                     <span>{subscription.name}</span>
                   </div>
-                  {match(subscription.templateId)
-                    .with(null, () => null)
-                    .otherwise(() => (
-                      <Check className="w-5 h-5 text-green-500" />
-                    ))}
                 </CardTitle>
                 <CardDescription>{subscription.description}</CardDescription>
               </CardHeader>
@@ -132,10 +126,6 @@ SubscriptionList.MySubscriptions = () => {
                   <TypographyP className="text-sm text-muted-foreground">Valor</TypographyP>
                   <TypographyP className="text-sm">R$ {(subscription.princeInCents / 100).toFixed(2)}</TypographyP>
                 </div>
-
-                {!subscription.templateId && (
-                  <TypographyMuted className="text-xs">Aguardando aprovação do template</TypographyMuted>
-                )}
               </CardContent>
             </Card>
           ))}

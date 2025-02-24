@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { TypographyH2 } from "@/components/ui/typography"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { Player } from "@lottiefiles/react-lottie-player"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
@@ -13,10 +14,11 @@ interface SuccessScreenProps {
 }
 
 export function SuccessScreen({ subscriptionName, subscriptionId, name, onBackToHome }: SuccessScreenProps) {
+  const isMobile = useIsMobile()
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}/app/subscriptions/${subscriptionId}/join`
 
-    if (navigator.share) {
+    if (navigator.share && isMobile) {
       try {
         await navigator.share({
           title: `Junte-se à assinatura ${name}`,
@@ -26,10 +28,10 @@ export function SuccessScreen({ subscriptionName, subscriptionId, name, onBackTo
       } catch (error) {
         console.error("Erro ao compartilhar:", error)
       }
-    } else {
-      navigator.clipboard.writeText(shareUrl)
+      return
     }
 
+    navigator.clipboard.writeText(shareUrl)
     toast.success("Link copiado para a área de transferência!", {
       description: "Agora você pode compartilhar com quem quiser convidar.",
     })

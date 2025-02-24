@@ -1,4 +1,4 @@
-import { definePermissions, type Condition, type ExpressionBuilder, type Row } from "@rocicorp/zero"
+import { ANYONE_CAN, definePermissions, type Condition, type ExpressionBuilder, type Row } from "@rocicorp/zero"
 import { createZeroSchema } from "drizzle-zero"
 import * as drizzleSchema from "./drizzle-schema"
 
@@ -8,7 +8,7 @@ export const schema = createZeroSchema(drizzleSchema, {
     subscription: {
       id: true,
       ownerId: true,
-      templateId: true,
+      templateId: false,
       name: true,
       description: true,
       type: true,
@@ -110,6 +110,11 @@ export const permissions = definePermissions<AuthData, Schema>(schema, () => {
         },
         select: [allowIfSubscriptionOwner, allowIfIsInWhitelist],
         insert: [allowIfSubscriptionOwner],
+      },
+    },
+    subscriptionAccount: {
+      row: {
+        insert: ANYONE_CAN,
       },
     },
     subscriptionTemplate: {

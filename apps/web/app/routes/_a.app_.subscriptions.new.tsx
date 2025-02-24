@@ -7,7 +7,7 @@ import { TypographyH2 } from "@/components/ui/typography"
 import { querySubscriptionTemplates } from "@/hooks/use-subscription-templates"
 import { formatCurrency } from "@/lib/currency"
 import { SubscriptionService } from "@/service/subscriptions"
-import type { Schema, SubscriptionTemplate } from "@carteira/db"
+import { subscriptionInsertSchema, type Schema, type SubscriptionTemplate } from "@carteira/db"
 import { useUser } from "@clerk/react-router"
 import { useQuery, useZero } from "@rocicorp/zero/react"
 import { AnimatePresence, motion } from "framer-motion"
@@ -28,11 +28,9 @@ export default function NovaAssinatura() {
 
   const methods = useForm<FormNewSubscription>({
     defaultValues: {
-      userId: user?.id ?? "",
       subscription: {
         id: "",
-        ownerId: "",
-        templateId: null,
+        ownerId: user?.id ?? "",
         name: "",
         description: "",
         renewalDay: 5,
@@ -80,16 +78,18 @@ export default function NovaAssinatura() {
                   }}
                   className="space-y-4"
                 >
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2, delay: 0.1 }}
-                    className="space-y-2"
-                  >
-                    <TypographyH2>{currentConfig.title}</TypographyH2>
-                    <NovaAssinaturaProgressBar currentStep={Object.values(FormStep).indexOf(currentStep)} />
-                    <p className="text-muted-foreground">{currentConfig.subtitle}</p>
-                  </motion.div>
+                  {currentStep !== FormStep.SUCCESS && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: 0.1 }}
+                      className="space-y-2"
+                    >
+                      <TypographyH2>{currentConfig.title}</TypographyH2>
+                      <NovaAssinaturaProgressBar currentStep={Object.values(FormStep).indexOf(currentStep)} />
+                      <p className="text-muted-foreground">{currentConfig.subtitle}</p>
+                    </motion.div>
+                  )}
 
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -101,7 +101,7 @@ export default function NovaAssinatura() {
                         <SelectTemplateStep currentStep={currentStep} setCurrentStep={setCurrentStep} />
                       ))
                       .with(FormStep.CUSTOM_DETAILS, () => (
-                        <CustomDetailsStep currentStep={currentStep} setCurrentStep={setCurrentStep} />
+                        <SubscriptionDetails currentStep={currentStep} setCurrentStep={setCurrentStep} />
                       ))
                       .with(FormStep.PAYMENT_DETAILS, () => (
                         <PaymentDetailsStep currentStep={currentStep} setCurrentStep={setCurrentStep} />
@@ -174,9 +174,10 @@ function SelectTemplateStep(p: { currentStep: FormStep; setCurrentStep: (step: F
   const zero = useZero<Schema>()
   const [inputValue, setInputValue] = useState("")
   const selectTemplatesQuery = querySubscriptionTemplates(zero).where("name", "ILIKE", `%${inputValue}%`)
+  const navigate = useNavigate()
 
   const prevStep = () => {
-    p.setCurrentStep(FormStep.PAYMENT_DETAILS)
+    navigate(-1)
   }
 
   const onSubmit = (values: FormNewSubscription) => {
@@ -205,7 +206,7 @@ function SelectTemplateStep(p: { currentStep: FormStep; setCurrentStep: (step: F
     }
   }
 
-  const options: SelectOption<SubscriptionTemplate | null>[] =
+  const options: SelectOption<SubscriptionTemplate>[] =
     templates?.map((template) => ({
       value: template,
       label: template.name,
@@ -237,8 +238,8 @@ function SelectTemplateStep(p: { currentStep: FormStep; setCurrentStep: (step: F
 
   return (
     <>
-      <ControlledSelect
-        name="selectedTemplate"
+      <ControlledSelect<FormNewSubscription, SubscriptionTemplate>
+        name="subscriptionTemplate"
         options={options}
         onSelect={handleSelect}
         eq={(a, b) => a?.id === b?.id}
@@ -260,16 +261,14 @@ function SelectTemplateStep(p: { currentStep: FormStep; setCurrentStep: (step: F
         </Button>
 
         <Button type="button" onClick={form.handleSubmit(onSubmit)}>
-          {match(p.currentStep)
-            .with(FormStep.PASSWORD, () => "Criar Assinatura")
-            .otherwise(() => "Continuar")}
+          Continuar
         </Button>
       </div>
     </>
   )
 }
 
-function CustomDetailsStep(p: { currentStep: FormStep; setCurrentStep: (step: FormStep) => void }) {
+function SubscriptionDetails(p: { currentStep: FormStep; setCurrentStep: (step: FormStep) => void }) {
   const methods = useFormContext<FormNewSubscription>()
   const prevStep = () => {
     p.setCurrentStep(FormStep.SELECT_TEMPLATE)
@@ -280,15 +279,15 @@ function CustomDetailsStep(p: { currentStep: FormStep; setCurrentStep: (step: Fo
   return (
     <>
       <div className="space-y-4">
-        <ControlledInput
-          name="name"
+        <ControlledInput<FormNewSubscription>
+          name="subscription.name"
           schema={z.string().min(1, "O nome da assinatura é obrigatório")}
           placeholder="Ex: Curso de Culinária, Tv por assinatura, etc."
           label="Nome da assinatura"
         />
 
-        <ControlledInput
-          name="description"
+        <ControlledInput<FormNewSubscription>
+          name="subscription.description"
           schema={z.string().optional()}
           placeholder="Digite uma descrição (opcional)"
           label="Descrição"
@@ -322,8 +321,8 @@ function PaymentDetailsStep(p: { currentStep: FormStep; setCurrentStep: (step: F
     <>
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <ControlledInput
-            name="maxMembers"
+          <ControlledInput<FormNewSubscription>
+            name="subscription.maxMembers"
             schema={z.coerce.number().min(1, "A quantidade de pessoas é obrigatória")}
             type="number"
             min={1}
@@ -331,22 +330,22 @@ function PaymentDetailsStep(p: { currentStep: FormStep; setCurrentStep: (step: F
             label="Quantidade de pessoas que vão dividir"
           />
 
-          <ControlledInput
-            name="price"
+          <ControlledInput<FormNewSubscription>
+            name="subscription.princeInCents"
             numeric
             thousandSeparator="."
             decimalSeparator=","
             prefix="R$ "
             decimalScale={2}
-            schema={z.string().min(1, "O preço da assinatura é obrigatório")}
+            schema={subscriptionInsertSchema.shape.createdAt}
             fixedDecimalScale
             placeholder="Valor total da assinatura"
             label="Valor total da assinatura"
           />
         </div>
 
-        <ControlledInput
-          name="dueDate"
+        <ControlledInput<FormNewSubscription>
+          name="subscription.renewalDay"
           schema={z.coerce
             .number()
             .min(1, "O dia de vencimento é obrigatório")
@@ -398,13 +397,14 @@ function PasswordStep(p: {
   setCurrentStep: (step: FormStep) => void
   setSubscriptionId: (subscriptionId: string) => void
 }) {
+  const { user } = useUser()
   const zero = useZero<Schema>()
   const form = useFormContext<FormNewSubscription>()
   const prevStep = () => {
     p.setCurrentStep(FormStep.PAYMENT_DETAILS)
   }
   async function onSubmit(values: FormNewSubscription) {
-    const [result, err] = await SubscriptionService.createSubscription(zero, values)
+    const [result, err] = await SubscriptionService.createSubscription(zero, user?.id ?? "", values)
 
     if (err) {
       console.error(err)
@@ -415,6 +415,7 @@ function PasswordStep(p: {
     }
 
     p.setSubscriptionId(result.subscriptionId)
+    p.setCurrentStep(FormStep.SUCCESS)
   }
 
   const options: ToggleOption<boolean>[] = [
@@ -452,10 +453,10 @@ function PasswordStep(p: {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
           >
-            <ControlledInput
+            <ControlledInput<FormNewSubscription>
               schema={z.string().refine((value) => value.length >= 1, "A senha é obrigatória")}
               type="password"
-              name="password"
+              name="subscriptionAccount.encryptedAccountPassword"
               label="Senha de acesso"
               placeholder="Digite a senha do serviço"
             />

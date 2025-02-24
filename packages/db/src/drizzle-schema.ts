@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm"
 import { boolean, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core"
 import { createInsertSchema } from "drizzle-zod"
-
+import { z } from "zod"
 const timeStampColumns = {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -49,14 +49,26 @@ export const subscriptionTemplate = pgTable("subscription_template", {
 export const subscriptionAccount = pgTable("subscription_account", {
   ...timeStampColumns,
   id: text("id").primaryKey(),
-  subscriptionId: text("subscription_id").references(() => subscription.id),
+  subscriptionId: text("subscription_id")
+    .notNull()
+    .references(() => subscription.id)
+    .unique(),
   accountUserName: text("account_user_name").notNull(),
   encryptedAccountPassword: text("encrypted_account_password").notNull(),
 })
 
-export const subscriptionInsertSchema = createInsertSchema(subscription)
-export const subscriptionTemplateInsertSchema = createInsertSchema(subscriptionTemplate)
-export const subscriptionAccountInsertSchema = createInsertSchema(subscriptionAccount)
+export const subscriptionInsertSchema = createInsertSchema(subscription).extend({
+  createdAt: z.number().optional(),
+  updatedAt: z.number().optional(),
+})
+export const subscriptionTemplateInsertSchema = createInsertSchema(subscriptionTemplate).extend({
+  createdAt: z.number().optional(),
+  updatedAt: z.number().optional(),
+})
+export const subscriptionAccountInsertSchema = createInsertSchema(subscriptionAccount).extend({
+  createdAt: z.number().optional(),
+  updatedAt: z.number().optional(),
+})
 
 export const usersAllowedInASubscription = pgTable("subscription_user", {
   id: text("id").primaryKey(),

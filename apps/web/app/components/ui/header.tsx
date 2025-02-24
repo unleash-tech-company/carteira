@@ -95,7 +95,7 @@ export function Header() {
           <NavigationMenu className="flex justify-start items-start">
             <NavigationMenuList className="flex justify-start gap-4 flex-row">
               <NavigationMenuItem>
-                <NavigationMenuLink>
+                <NavigationMenuLink asChild>
                   <Link to={prefixLoggedIn}>
                     <Button variant="ghost" className="font-mono">
                       dividee.app

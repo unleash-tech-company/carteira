@@ -1,12 +1,12 @@
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import type { ComponentProps } from "react"
-import { useFormContext } from "react-hook-form"
+import { useFormContext, type FieldPath, type FieldValues } from "react-hook-form"
 import { NumericFormat } from "react-number-format"
 import type { ZodOptional, ZodType } from "zod"
 
-type BaseProps = {
-  name: string
+type BaseProps<TFieldValues extends FieldValues> = {
+  name: FieldPath<TFieldValues>
   label?: string
   schema: ZodType<string | number> | ZodOptional<ZodType<string | number>>
 }
@@ -14,10 +14,16 @@ type BaseProps = {
 type InputProps = ComponentProps<typeof Input>
 type NumericFormatProps = ComponentProps<typeof NumericFormat>
 
-type ControlledInputProps = BaseProps & (({ numeric?: false } & InputProps) | ({ numeric: true } & NumericFormatProps))
+type ControlledInputProps<TFieldValues extends FieldValues> = BaseProps<TFieldValues> &
+  (({ numeric?: false } & InputProps) | ({ numeric: true } & NumericFormatProps))
 
-export function ControlledInput({ name, label, numeric, ...props }: ControlledInputProps) {
-  const { control } = useFormContext()
+export function ControlledInput<TFieldValues extends FieldValues>({
+  name,
+  label,
+  numeric,
+  ...props
+}: ControlledInputProps<TFieldValues>) {
+  const { control } = useFormContext<TFieldValues>()
 
   return (
     <FormField
@@ -42,8 +48,8 @@ export function ControlledInput({ name, label, numeric, ...props }: ControlledIn
             {numeric ? (
               <NumericFormat
                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={field.value}
-                onValueChange={(values) => field.onChange(values.value)}
+                value={field.value / 100}
+                onValueChange={(values) => field.onChange((Number(values.value) || 0) * 100)}
                 {...(props as NumericFormatProps)}
               />
             ) : (

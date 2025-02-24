@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 import { AnimatePresence, motion } from "framer-motion"
 import { Check, ChevronsUpDown, Plus } from "lucide-react"
 import { useState } from "react"
-import { useFormContext } from "react-hook-form"
+import { useFormContext, type FieldPath, type FieldValues } from "react-hook-form"
 import type { ZodOptional, ZodType } from "zod"
 
 export type SelectOption<T> = {
@@ -15,23 +15,23 @@ export type SelectOption<T> = {
   description?: string
 }
 
-type BaseProps<T> = {
-  name: string
+type BaseProps<TFieldValues extends FieldValues, TDataValue extends unknown> = {
+  name: FieldPath<TFieldValues>
   label?: string
   placeholder?: string
-  options: SelectOption<T>[]
-  eq: (a: T, b: T) => boolean
+  options: SelectOption<TDataValue>[]
+  eq: (a: TDataValue, b: TDataValue) => boolean
   searchPlaceholder?: string
   emptyMessage?: string
   onSearch?: (value: string) => void
-  onSelect?: (value: T) => void
-  onCreate?: (value: string) => SelectOption<T>
+  onSelect?: (value: TDataValue) => void
+  onCreate?: (value: string) => SelectOption<TDataValue>
   createOptionLabel?: (value: string) => string
   disabled?: boolean
   schema: ZodType<any> | ZodOptional<ZodType<any>>
 }
 
-export function ControlledSelect<T>({
+export function ControlledSelect<TFieldValues extends FieldValues, TDataValue extends unknown>({
   name,
   label,
   placeholder = "Selecione uma opção...",
@@ -42,12 +42,12 @@ export function ControlledSelect<T>({
   emptyMessage = "Nenhuma opção encontrada.",
   onSearch,
   onCreate,
-  createOptionLabel = (value) => `Criar "${value}"`,
+  createOptionLabel = (value: string) => `Criar "${value}"`,
   disabled,
   schema,
-}: BaseProps<T>) {
-  const { control, setValue } = useFormContext()
-  const [selectedOption, setSelectedOption] = useState<SelectOption<T> | null>(null)
+}: BaseProps<TFieldValues, TDataValue>) {
+  const { control, setValue } = useFormContext<TFieldValues>()
+  const [selectedOption, setSelectedOption] = useState<SelectOption<TDataValue> | null>(null)
   const [open, setOpen] = useState(false)
   const [inputValue, setInputValue] = useState("")
 
@@ -71,9 +71,9 @@ export function ControlledSelect<T>({
     handleSelect(newValue)
   }
 
-  const handleSelect = (value: SelectOption<T>) => {
+  const handleSelect = (value: SelectOption<TDataValue>) => {
     setSelectedOption(value)
-    setValue(name, value.value)
+    setValue(name, value.value as any)
     setOpen(false)
     onSelect?.(value.value)
   }
