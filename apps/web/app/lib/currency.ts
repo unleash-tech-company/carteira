@@ -4,3 +4,10 @@ export function formatCurrency({ valueInCents }: { valueInCents: number }) {
     currency: "BRL",
   })
 }
+
+export function parseCurrency(value?: string | number) {
+  if (typeof value === "number") return value
+  if (!value) return value
+  const parsed = value.replace?.(/[^\d]/g, "")
+  return Number(parsed.replace(",", "."))
+}

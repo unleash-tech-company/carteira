@@ -19,14 +19,17 @@ import {
 } from "@/components/ui/dialog"
 import { ControlledInput } from "@/components/ui/form/controlled-input"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { TypographyH1, TypographyH2, TypographyMuted } from "@/components/ui/typography"
-import type { Schema, Subscription } from "@carteira/db"
+import { TypographyH1, TypographyH2, TypographyH3, TypographyMuted } from "@/components/ui/typography"
+import { formatCurrency } from "@/lib/currency"
+import { TODO } from "@/lib/utils"
+import { subscriptionInsertSchema, type Schema, type Subscription } from "@carteira/db"
 import { useUser } from "@clerk/react-router"
 import { useQuery, useZero } from "@rocicorp/zero/react"
 import { AlertTriangle, CreditCard, Crown, Eye, EyeOff, Plus, Settings, Trash2, Users } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { FormProvider, useForm } from "react-hook-form"
 import { useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
@@ -39,9 +42,16 @@ export default function SubscriptionDetailsPage() {
   const z = useZero<Schema>()
   const [subscription] = useQuery(z.query.subscription.where((q) => q.cmp("id", "=", id!)))
   const subscriptionData = subscription[0] as Subscription | undefined
-  const [allowedUsers] = useQuery(z.query.usersAllowedInASubscription.where((q) => q.cmp("subscriptionId", "=", id!)))
+  const [allowedUsers, allowedUsersDetails] = useQuery(
+    z.query.usersAllowedInASubscription.where((q) => q.cmp("subscriptionId", "=", id!))
+  )
+  const isLoading = allowedUsersDetails.type !== "complete"
   const [subscriptionAccount] = useQuery(z.query.subscriptionAccount.where((q) => q.cmp("subscriptionId", "=", id!)))
   const { user: currentUser } = useUser()
+
+  if (isLoading) {
+    return <GeneralTabSkeleton />
+  }
 
   if (!subscriptionData) {
     return (
@@ -88,7 +98,6 @@ export default function SubscriptionDetailsPage() {
         <TabsContent value="general" className="space-y-4">
           <GeneralTab
             subscriptionData={subscriptionData}
-            subscriptionPassword={subscriptionAccount?.[0]}
             isCurrentUserAllowed={allowedUsers.some((au) => au.userId === currentUser?.id)}
           />
         </TabsContent>
@@ -118,12 +127,7 @@ function GeneralTab({
   const totalPrice = subscriptionData.princeInCents / 100
   const membersCount = subscriptionData.maxMembers
   const pricePerPerson = totalPrice / membersCount
-  // TODO: Implementar cálculo real de economia baseado no preço individual do serviço
   const savings = totalPrice - pricePerPerson
-  const formatter = new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  })
 
   return (
     <div className="space-y-4">
@@ -143,7 +147,7 @@ function GeneralTab({
             <CardTitle className="text-sm font-medium text-muted-foreground">Por Pessoa</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatter.format(pricePerPerson)}</div>
+            <div className="text-2xl font-bold">{formatCurrency({ valueInCents: pricePerPerson })}</div>
             <p className="text-xs text-muted-foreground mt-1">Dividido entre ___{membersCount} membros ativos___</p>
           </CardContent>
         </Card>
@@ -153,9 +157,9 @@ function GeneralTab({
             <CardTitle className="text-sm font-medium text-muted-foreground">__Economia Mensal__</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-500">{formatter.format(savings)}</div>
+            <div className="text-2xl font-bold text-green-500">{formatCurrency({ valueInCents: savings })}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              __Comparado ao preço individual de {formatter.format(totalPrice)}__
+              __Comparado ao preço individual de {formatCurrency({ valueInCents: totalPrice })}__
             </p>
           </CardContent>
         </Card>
@@ -165,7 +169,7 @@ function GeneralTab({
             <CardTitle className="text-sm font-medium text-muted-foreground">__Economia Anual__</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-500">{formatter.format(savings * 12)}</div>
+            <div className="text-2xl font-bold text-green-500">{formatCurrency({ valueInCents: savings * 12 })}</div>
             <p className="text-xs text-muted-foreground mt-1">__Total economizado por ano (projeção)__</p>
           </CardContent>
         </Card>
@@ -210,6 +214,37 @@ function GeneralTab({
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+function GeneralTabSkeleton() {
+  return (
+    <main className="container mx-auto py-8">
+      <div className="mb-8 grid gap-4">
+        <Skeleton className="h-12 w-40" />
+        <Skeleton className="h-8 w-20" />
+      </div>
+      <div className="space-y-4">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, index) => (
+            <Card key={index} className="p-4 grid gap-2">
+              <Skeleton className="h-8 w-40" />
+              <Skeleton className="h-4 w-20" />
+            </Card>
+          ))}
+        </div>
+
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-10 w-40" />
+            <Skeleton className="h-4 w-20" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Skeleton className="h-10 w-30" />
+          </CardContent>
+        </Card>
+      </div>
+    </main>
   )
 }
 
@@ -373,14 +408,21 @@ function MembersTab() {
 }
 
 function SettingsTab() {
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [deleteConfirmation, setDeleteConfirmation] = useState("")
-  const settingsForm = useForm<SettingsForm>()
+  const z = useZero<Schema>()
   const { id } = useParams()
   const navigate = useNavigate()
-  const z = useZero<Schema>()
-  const [subscription] = useQuery(z.query.subscription.where((q) => q.cmp("id", "=", id!)))
-  const subscriptionData = subscription[0] as Subscription | undefined
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState("")
+  const [[subscriptionData]] = useQuery(z.query.subscription.where((q) => q.cmp("id", "=", id!)))
+  const settingsForm = useForm<SettingsForm>({
+    defaultValues: {
+      name: subscriptionData?.name ?? "",
+      description: subscriptionData?.description ?? "",
+      maxMembers: subscriptionData?.maxMembers.toString() ?? "",
+      princeInCents: subscriptionData?.princeInCents.toString() ?? "",
+      renewalDay: subscriptionData?.renewalDay.toString() ?? "",
+    },
+  })
 
   const handleDelete = async () => {
     try {
@@ -406,14 +448,17 @@ function SettingsTab() {
       }
 
       const { name, description, maxMembers, princeInCents, renewalDay } = result.data
-      await z.mutate.subscription.update({
-        id: id!,
+      const data2: Partial<Subscription> = {
+        id: id,
+        ownerId: subscriptionData?.ownerId,
         name,
         description: description || null,
         maxMembers,
-        princeInCents,
+        // princeInCents,
         renewalDay,
-      })
+      }
+      console.log(data2)
+      await z.mutate.subscription.update(data2)
       toast.success("Configurações atualizadas com sucesso")
     } catch (error) {
       console.error(error)
@@ -423,21 +468,6 @@ function SettingsTab() {
     }
   }
 
-  useEffect(() => {
-    if (subscriptionData) {
-      settingsForm.reset({
-        name: subscriptionData.name,
-        description: subscriptionData.description ?? "",
-        maxMembers: subscriptionData.maxMembers.toString(),
-        princeInCents: new Intl.NumberFormat("pt-BR", {
-          style: "currency",
-          currency: "BRL",
-        }).format(subscriptionData.princeInCents / 100),
-        renewalDay: subscriptionData.renewalDay.toString(),
-      })
-    }
-  }, [subscriptionData])
-
   return (
     <Card>
       <CardHeader>
@@ -446,7 +476,7 @@ function SettingsTab() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-4">
-          <TypographyH2>Informações Básicas</TypographyH2>
+          <TypographyH3>Informações</TypographyH3>
           <FormProvider {...settingsForm}>
             <form onSubmit={settingsForm.handleSubmit(handleUpdateSettings)} className="space-y-4">
               <ControlledInput
@@ -454,18 +484,21 @@ function SettingsTab() {
                 label="Nome"
                 placeholder="Nome da assinatura"
                 schema={settingsSchema.shape.name}
+                disabled={true}
               />
 
               <ControlledInput
                 name="description"
                 label="Descrição"
                 placeholder="Descrição da assinatura"
+                disabled={true}
                 schema={settingsSchema.shape.description}
               />
 
               <ControlledInput
                 name="maxMembers"
                 label="Número máximo de membros"
+                disabled={true}
                 type="number"
                 min={1}
                 max={16}
@@ -474,10 +507,11 @@ function SettingsTab() {
               />
 
               <ControlledInput
+                disabled={true}
                 name="princeInCents"
                 label="Valor total"
                 placeholder="R$ 0,00"
-                schema={settingsSchema.shape.princeInCents}
+                schema={subscriptionInsertSchema.shape.princeInCents}
                 numeric
                 thousandSeparator="."
                 decimalSeparator=","
@@ -487,6 +521,7 @@ function SettingsTab() {
               />
 
               <ControlledInput
+                disabled={true}
                 name="renewalDay"
                 label="Dia de renovação"
                 type="number"
@@ -496,7 +531,8 @@ function SettingsTab() {
                 schema={settingsSchema.shape.renewalDay}
               />
 
-              <Button type="submit">Salvar Alterações</Button>
+              {TODO("fixar", "https://discord.com/channels/830183651022471199/1288232858795769917/1343391343069888513")}
+              {/* <Button type="submit">Salvar Alterações</Button> */}
             </form>
           </FormProvider>
         </div>
@@ -569,10 +605,7 @@ const settingsSchema = z.object({
     .string()
     .transform((val) => parseInt(val))
     .refine((val) => val >= 1 && val <= 16, "O número de membros deve estar entre 1 e 16"),
-  princeInCents: z
-    .string()
-    .transform((val) => Number(val.replace(/\D/g, "")))
-    .refine((val) => val > 0, "O valor deve ser maior que zero"),
+  princeInCents: subscriptionInsertSchema.shape.princeInCents,
   renewalDay: z
     .string()
     .transform((val) => parseInt(val))

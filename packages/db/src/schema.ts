@@ -105,8 +105,8 @@ export const permissions = definePermissions<AuthData, Schema>(schema, () => {
       row: {
         delete: [allowIfSubscriptionOwner],
         update: {
-          postMutation: [allowIfSubscriptionOwner],
           putMutation: [allowIfSubscriptionOwner],
+          postMutation: [allowIfSubscriptionOwner],
         },
         select: [allowIfSubscriptionOwner, allowIfIsInWhitelist],
         insert: [allowIfSubscriptionOwner],

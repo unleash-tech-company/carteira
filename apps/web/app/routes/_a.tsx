@@ -26,6 +26,7 @@ export default function ProtectedLayout() {
         return token
       },
       server: "http://localhost:4848",
+      logLevel: "debug",
       schema,
       kvStore: "mem",
     })

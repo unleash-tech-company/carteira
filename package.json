@@ -11,7 +11,7 @@
     "dev:silent": "concurrently \"react-router dev\" \"npm run zero > /dev/null 2>&1\"",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
-    "zero:db-up": "docker compose --env-file .env -f ./docker/docker-compose.yml up",
+    "zero:db-up": "docker compose --env-file .env -f ./docker/docker-compose.yml up -d",
     "zero:db-down": "docker compose --env-file .env -f ./docker/docker-compose.yml down",
     "zero:clean": "source .env && docker volume rm -f docker_zstart_pgdata && rm -rf \"${ZERO_REPLICA_FILE}\"*",
     "db:push": "drizzle-kit push",
