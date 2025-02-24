@@ -70,11 +70,11 @@ export default function SubscriptionsPage() {
           </div>
         ) : (
           <>
-            <div className={cn("grid gap-4", "grid-cols-1", "sm:grid-cols-2", "lg:grid-cols-3", "xl:grid-cols-4")}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {paginatedSubscriptions.map((subscription: Subscription) => (
                 <Card
                   key={subscription.id}
-                  className="group hover:shadow-md transition-shadow cursor-pointer"
+                  className="group hover:shadow-md transition-shadow cursor-pointer rounded-none"
                   onClick={() => navigate(`/app/subscriptions/${subscription.id}`)}
                 >
                   <CardHeader>
@@ -176,9 +176,9 @@ export default function SubscriptionsPage() {
 
 function SubscriptionListSkeleton() {
   return (
-    <div className={cn("grid gap-4", "grid-cols-1", "sm:grid-cols-2", "lg:grid-cols-3", "xl:grid-cols-4")}>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {[...Array(ITEMS_PER_PAGE)].map((_, i) => (
-        <Card key={i} className="animate-pulse">
+        <Card key={i} className="animate-pulse rounded-none">
           <CardHeader className="space-y-2">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-4 w-48" />

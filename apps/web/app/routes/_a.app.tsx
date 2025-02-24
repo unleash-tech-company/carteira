@@ -21,16 +21,16 @@ export default function ProtectedPage() {
 
 const useSubscriptionLists = () => {
   const z = useZero<Schema>()
-  const [subscriptions, subscriptionDetails] = useQuery(z.query.subscription.limit(3))
+  const [subscriptions, subscriptionDetails] = useQuery(z.query.subscription.limit(6))
   const isLoading = subscriptionDetails.type !== "complete"
   return { subscriptions, isLoading }
 }
 
 function SubscriptionListSkeleton() {
   return (
-    <div className={cn("grid gap-4", "grid-cols-1", "sm:grid-cols-2", "lg:grid-cols-3")}>
+    <div className="columns-1 sm:columns-2 lg:columns-3 gap-4">
       {[1, 2, 3].map((i) => (
-        <Card key={i} className="animate-pulse">
+        <Card key={i} className="animate-pulse break-inside-avoid mb-4 rounded-none">
           <CardHeader className="space-y-2">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-4 w-48" />
@@ -87,42 +87,49 @@ export function SubscriptionList() {
         </div>
       ) : (
         <>
-          <div className={cn("grid gap-4", "grid-cols-1", "sm:grid-cols-2", "lg:grid-cols-3")}>
-            {subscriptions.map((subscription) => (
-              <Card
-                key={subscription.id}
-                className="group hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => navigate(`/app/subscriptions/${subscription.id}`)}
-              >
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="w-5 h-5" />
-                      <span>{subscription.name}</span>
+          <div className="relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {subscriptions.map((subscription, index) => (
+                <Card
+                  key={subscription.id}
+                  className={cn(
+                    "group hover:shadow-md transition-shadow cursor-pointer rounded-none",
+                    index >= 3 && "opacity-30"
+                  )}
+                  onClick={() => navigate(`/app/subscriptions/${subscription.id}`)}
+                >
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="w-5 h-5" />
+                        <span>{subscription.name}</span>
+                      </div>
+                    </CardTitle>
+                    <CardDescription>{subscription.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <TypographyP className="text-sm text-muted-foreground">Membros</TypographyP>
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-muted-foreground" />
+                        <span>
+                          {/* TODO: Implementar contagem de membros */}0 / {subscription.maxMembers}
+                        </span>
+                      </div>
                     </div>
-                  </CardTitle>
-                  <CardDescription>{subscription.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <TypographyP className="text-sm text-muted-foreground">Membros</TypographyP>
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-muted-foreground" />
-                      <span>
-                        {/* TODO: Implementar contagem de membros */}0 / {subscription.maxMembers}
-                      </span>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center justify-between">
-                    <TypographyP className="text-sm text-muted-foreground">Valor</TypographyP>
-                    <TypographyP className="text-sm">
-                      {formatCurrency({ valueInCents: subscription.princeInCents })}
-                    </TypographyP>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="flex items-center justify-between">
+                      <TypographyP className="text-sm text-muted-foreground">Valor</TypographyP>
+                      <TypographyP className="text-sm">
+                        {formatCurrency({ valueInCents: subscription.princeInCents })}
+                      </TypographyP>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            {/* Overlay gradiente para dar efeito de fade out */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background pointer-events-none" />
           </div>
 
           <div className="flex justify-center">
