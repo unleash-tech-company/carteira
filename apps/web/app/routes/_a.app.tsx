@@ -20,7 +20,7 @@ export default function ProtectedPage() {
 
 const useSubscriptionLists = () => {
   const z = useZero<Schema>()
-  const [subscriptions, subscriptionDetails] = useQuery(z.query.subscription)
+  const [subscriptions, subscriptionDetails] = useQuery(z.query.subscription.limit(10))
   const isLoading = subscriptionDetails.type !== "complete"
   return { subscriptions, isLoading }
 }
